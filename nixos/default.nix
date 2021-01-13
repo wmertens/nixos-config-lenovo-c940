@@ -2,5 +2,5 @@
 { config, pkgs, options, ... }:
 
 {
-  imports = [ ./swapspace.nix ];
+  imports = [ ./swapspace.nix ./uvdesk.nix ];
 }

@@ -1,0 +1,22 @@
+--- a/vendor/symfony/http-kernel/Kernel.php
++++ b/vendor/symfony/http-kernel/Kernel.php
+@@ -390,6 +390,10 @@
+      */
+     public function getCacheDir()
+     {
++        if (isset($_SERVER['APP_CACHE_DIR'])) {
++            return $_SERVER['APP_CACHE_DIR'].'/'.$this->environment;
++        }
++
+         return $this->getProjectDir().'/var/cache/'.$this->environment;
+     }
+ 
+@@ -398,7 +402,7 @@
+      */
+     public function getLogDir()
+     {
+-        return $this->getProjectDir().'/var/log';
++        return $_SERVER['APP_LOG_DIR'] ?? $this->getProjectDir().'/var/log';
+     }
+ 
+     /**
