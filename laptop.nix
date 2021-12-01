@@ -5,6 +5,12 @@
   services.swapspace.cooldown = 50;
   services.swapspace.maxSwapSize = 500000000;
 
+  hardware.bluetooth.enable = true;
+
+  networking.networkmanager.enable = true;
+
+  # Use the power daemon thingie in Gnome
+  services.tlp.enable = false;
   services.tlp.settings = {
     CPU_SCALING_GOVERNOR_ON_AC = "powersave";
     CPU_SCALING_GOVERNOR_ON_BAT = "powersave";

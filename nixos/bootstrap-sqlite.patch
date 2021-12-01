@@ -1,0 +1,209 @@
+--- a/src/Console/Wizard/ConfigureHelpdesk.php
++++ b/src/Console/Wizard/ConfigureHelpdesk.php
+@@ -52,61 +52,41 @@
+         $output->write([self::MCH, self::CLS]);
+         $output->writeln("\n<comment>  Examining helpdesk setup for any configuration issues:</comment>\n");
+ 
+-        list($db_host, $db_port, $db_name, $db_user, $db_password) = $this->getUpdatedDatabaseCredentials();
+-
+-        // Check 1: Verify database connection
+-        $output->writeln("  [-] Establishing a connection with database server");
++        $database = $this->getSQLite($output);
++        
++        if (!$database) {
++            list($db_host, $db_port, $db_name, $db_user, $db_password) = $this->getUpdatedDatabaseCredentials();
+ 
+-        list($isServerAccessible, $isDatabaseAccessible) = $this->refreshDatabaseConnection($db_host, $db_port, $db_name, $db_user, $db_password);
++            // Check 1: Verify database connection
++            $output->writeln("  [-] Establishing a connection with database server");
+ 
+-        if (false == $isServerAccessible || false == $isDatabaseAccessible) {
+-            $output->writeln("<fg=red;>  [x]</> Unable to establish a connection with database server</>");
++            list($isServerAccessible, $isDatabaseAccessible) = $this->refreshDatabaseConnection($db_host, $db_port, $db_name, $db_user, $db_password);
+ 
+-            // Interactively prompt user to re-configure their database
+-            $interactiveQuestion = new Question("\n      <comment>Proceed with re-configuring your database credentials? [Y/N]</comment> ", 'Y');
++            if (false == $isServerAccessible || false == $isDatabaseAccessible) {
++                $output->writeln("<fg=red;>  [x]</> Unable to establish a connection with database server</>");
+ 
+-            if ('Y' === strtoupper($this->questionHelper->ask($input, $output, $interactiveQuestion))) {
+-                $continue = false;
+-                $output->write([self::MCA, self::CLL, self::MCA, self::CLL]);
++                // Interactively prompt user to re-configure their database
++                $interactiveQuestion = new Question("\n      <comment>Proceed with re-configuring your database credentials? [Y/N]</comment> ", 'Y');
+ 
+-                do {
++                if ('Y' === strtoupper($this->questionHelper->ask($input, $output, $interactiveQuestion))) {
+                     $continue = false;
+-                    $output->writeln("\n      <comment>Please enter the following details:</comment>\n");
+-    
+-                    $db_host = $this->askInteractiveQuestion("<info>Database Host</info>: ", '127.0.0.1', 6, false, false, "Please enter a host address");
+-                    $db_port = $this->askInteractiveQuestion("<info>Database Port</info>: ", '3306', 6, false, false, "Please enter a host port number");
+-                    $db_name = $this->askInteractiveQuestion("<info>Database Name</info>: ", null, 6, false, false, "Please enter name of the database you wish to connect with");
+-                    $db_user = $this->askInteractiveQuestion("<info>Database User Name</info>: ", null, 6, false, false, "Please enter your user name to connect with the database");
+-                    $db_password = $this->askInteractiveQuestion("<info>Database User Password</info>: ", null, 6, false, true, "Please enter your user password to connect with the database");
+-    
+-                    $output->write([self::MCA, self::CLL, self::MCA, self::CLL, self::MCA, self::CLL]);
+-
+-                    list($isServerAccessible, $isDatabaseAccessible) = $this->refreshDatabaseConnection($db_host, $db_port, $db_name, $db_user, $db_password);
+-
+-                    if (false == $isServerAccessible) {
+-                        $interactiveQuestion = new Question("\n      <comment>Unable to connect with your database server, please check the details provided.\n      Do you wish to try again? [Y/N]</comment> ", 'Y');
+-
+-                        if ('Y' === strtoupper($this->questionHelper->ask($input, $output, $interactiveQuestion))) {
+-                            $continue = true;
+-                        }
++                    $output->write([self::MCA, self::CLL, self::MCA, self::CLL]);
+ 
++                    do {
++                        $continue = false;
++                        $output->writeln("\n      <comment>Please enter the following details:</comment>\n");
++        
++                        $db_host = $this->askInteractiveQuestion("<info>Database Host</info>: ", '127.0.0.1', 6, false, false, "Please enter a host address");
++                        $db_port = $this->askInteractiveQuestion("<info>Database Port</info>: ", '3306', 6, false, false, "Please enter a host port number");
++                        $db_name = $this->askInteractiveQuestion("<info>Database Name</info>: ", null, 6, false, false, "Please enter name of the database you wish to connect with");
++                        $db_user = $this->askInteractiveQuestion("<info>Database User Name</info>: ", null, 6, false, false, "Please enter your user name to connect with the database");
++                        $db_password = $this->askInteractiveQuestion("<info>Database User Password</info>: ", null, 6, false, true, "Please enter your user password to connect with the database");
++        
+                         $output->write([self::MCA, self::CLL, self::MCA, self::CLL, self::MCA, self::CLL]);
+-                    } else if (false == $isDatabaseAccessible) {
+-                        $interactiveQuestion = new Question("\n      <comment>Database <comment>$db_name</comment> does not exist. Proceed with creating database? [Y/N]</comment> ", 'Y');
+ 
+-                        if ('Y' === strtoupper($this->questionHelper->ask($input, $output, $interactiveQuestion))) {
+-                            $output->write([self::MCA, self::CLL, self::MCA, self::CLL]);
+-                            
+-                            // Create Database
+-                            if (false == $this->createDatabase($db_host, $db_port, $db_name, $db_user, $db_password)) {
+-                                $output->writeln([
+-                                    "<fg=red;>  [x]</> An unexpected error occurred while trying to create database <comment>$db_name</comment>.</>",
+-                                    "\n  Exiting evaluation process.\n"
+-                                ]);
+-                            }
+-                        } else {
+-                            $output->write([self::MCA, self::CLL, self::MCA, self::CLL]);
++                        list($isServerAccessible, $isDatabaseAccessible) = $this->refreshDatabaseConnection($db_host, $db_port, $db_name, $db_user, $db_password);
+ 
++                        if (false == $isServerAccessible) {
+                             $interactiveQuestion = new Question("\n      <comment>Unable to connect with your database server, please check the details provided.\n      Do you wish to try again? [Y/N]</comment> ", 'Y');
+ 
+                             if ('Y' === strtoupper($this->questionHelper->ask($input, $output, $interactiveQuestion))) {
+@@ -114,46 +94,70 @@
+                             }
+ 
+                             $output->write([self::MCA, self::CLL, self::MCA, self::CLL, self::MCA, self::CLL]);
++                        } else if (false == $isDatabaseAccessible) {
++                            $interactiveQuestion = new Question("\n      <comment>Database <comment>$db_name</comment> does not exist. Proceed with creating database? [Y/N]</comment> ", 'Y');
++
++                            if ('Y' === strtoupper($this->questionHelper->ask($input, $output, $interactiveQuestion))) {
++                                $output->write([self::MCA, self::CLL, self::MCA, self::CLL]);
++                                
++                                // Create Database
++                                if (false == $this->createDatabase($db_host, $db_port, $db_name, $db_user, $db_password)) {
++                                    $output->writeln([
++                                        "<fg=red;>  [x]</> An unexpected error occurred while trying to create database <comment>$db_name</comment>.</>",
++                                        "\n  Exiting evaluation process.\n"
++                                    ]);
++                                }
++                            } else {
++                                $output->write([self::MCA, self::CLL, self::MCA, self::CLL]);
++
++                                $interactiveQuestion = new Question("\n      <comment>Unable to connect with your database server, please check the details provided.\n      Do you wish to try again? [Y/N]</comment> ", 'Y');
++
++                                if ('Y' === strtoupper($this->questionHelper->ask($input, $output, $interactiveQuestion))) {
++                                    $continue = true;
++                                }
++
++                                $output->write([self::MCA, self::CLL, self::MCA, self::CLL, self::MCA, self::CLL]);
++                            }
+                         }
+-                    }
+-                } while (true == $continue);
++                    } while (true == $continue);
+ 
+-                list($isServerAccessible, $isDatabaseAccessible) = $this->refreshDatabaseConnection($db_host, $db_port, $db_name, $db_user, $db_password);
++                    list($isServerAccessible, $isDatabaseAccessible) = $this->refreshDatabaseConnection($db_host, $db_port, $db_name, $db_user, $db_password);
+ 
+-                if (true == $isServerAccessible && true == $isDatabaseAccessible) {
+-                    $databaseUrl = sprintf("mysql://%s:%s@%s:%s/%s", $db_user, $db_password, $db_host, $db_port, $db_name);
++                    if (true == $isServerAccessible && true == $isDatabaseAccessible) {
++                        $databaseUrl = sprintf("mysql://%s:%s@%s:%s/%s", $db_user, $db_password, $db_host, $db_port, $db_name);
+ 
+-                    $output->writeln("\n  [-] Switching to database <info>$db_name</info>");
++                        $output->writeln("\n  [-] Switching to database <info>$db_name</info>");
+ 
+-                    try {
+-                        $process = new Process("bin/console uvdesk_wizard:env:update DATABASE_URL $databaseUrl");
+-                        $process->setWorkingDirectory($this->projectDirectory);
+-                        $process->mustRun();
++                        try {
++                            $process = new Process("bin/console uvdesk_wizard:env:update DATABASE_URL $databaseUrl");
++                            $process->setWorkingDirectory($this->projectDirectory);
++                            $process->mustRun();
++
++                            $output->writeln("  <info>[v]</info> Successfully switched to database <info>$db_name</info>\n");
++                        } catch (\Exception $e) {
++                            $output->writeln([
++                                "<fg=red;>  [x]</> Failed to update .env with updated database credentials.</>",
++                                "\n  Exiting evaluation process.\n"
++                            ]);
+ 
+-                        $output->writeln("  <info>[v]</info> Successfully switched to database <info>$db_name</info>\n");
+-                    } catch (\Exception $e) {
+-                        $output->writeln([
+-                            "<fg=red;>  [x]</> Failed to update .env with updated database credentials.</>",
+-                            "\n  Exiting evaluation process.\n"
+-                        ]);
++                            return 1;
++                        }
++                    } else {
++                        $output->writeln("\n  Exiting evaluation process.\n");
+ 
+                         return 1;
+                     }
+                 } else {
++                    $output->write(["\033[1A", "\033[K", "\033[1A", "\033[K"]);
+                     $output->writeln("\n  Exiting evaluation process.\n");
+ 
+                     return 1;
+                 }
+             } else {
+-                $output->write(["\033[1A", "\033[K", "\033[1A", "\033[K"]);
+-                $output->writeln("\n  Exiting evaluation process.\n");
+-
+-                return 1;
++                $output->writeln("  <info>[v]</info> Successfully established a connection with database <info>$db_name</info>\n");
+             }
+-        } else {
+-            $output->writeln("  <info>[v]</info> Successfully established a connection with database <info>$db_name</info>\n");
++            $database = new \PDO("mysql:host=$db_host:$db_port;dbname=$db_name", $db_user, $db_password);
+         }
+-        
+         // Check 2: Ensure entities have been loaded
+         $output->writeln("  [-] Comparing the <info>$db_name</info> database schema with the current mapping metadata.");
+         
+@@ -235,8 +239,6 @@
+         // Check 3: Check if super admin account exists
+         $output->writeln("  [-] Checking if an active super admin account exists");
+ 
+-        $database = new \PDO("mysql:host=$db_host:$db_port;dbname=$db_name", $db_user, $db_password);
+-
+         $supportRoleQuery = $database->query("SELECT * FROM uv_support_role WHERE code = 'ROLE_SUPER_ADMIN'");
+         $supportRole = $supportRoleQuery->fetch(\PDO::FETCH_ASSOC);
+ 
+@@ -404,6 +406,16 @@
+         return true;
+     }
+ 
++    private function getSqlite($output)
++    {
++        $env = (new Dotenv())
++            ->parse(file_get_contents($this->container->getParameter('kernel.project_dir') . '/.env'));
++ $output->writeln($env['DATABASE_URL']);
++        if (substr($env['DATABASE_URL'], 0, 6) == 'sqlite') {
++            return new \PDO($env['DATABASE_URL']);
++        }
++    }
++
+     /**
+      * Get updated database credentials as given in .env located in project root.
+      * 

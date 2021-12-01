@@ -1,5 +1,15 @@
-{ config, pkgs, options, ... }:
-
+{ config, pkgs, options, lib, ... }:
+let
+  goConf = pkgs.runCommand "goConf" { }
+    ''
+      mkdir -p $out
+      cp ${pkgs.netdata}/lib/netdata/conf.d/go.d.conf $out
+      cp ${pkgs.netdata}/lib/netdata/conf.d/go.d/* $out
+      chmod +w $out/*
+      ${pkgs.yq-go}/bin/yq -Pi e '.modules.mysql = false' $out/go.d.conf
+      ${pkgs.yq-go}/bin/yq -Pi e '.jobs += {"name": "agent", "url": "http://127.0.0.1:3001/metrics"}' $out/prometheus.conf
+    '';
+in
 {
   # Don't kill BT on rebuild switch
   systemd.services.bluetooth.unitConfig.X-RestartIfChanged = false;
@@ -23,16 +33,57 @@
   # todo nice boot screen with windows selection
   # todo cpufreq governor GUI
 
-  # Use flakes
+  # Use all the Nix goodness
+  # hmm, maybe later
+  # nixpkgs.config.contentAddressedByDefault = true;
   nix.package = pkgs.nixUnstable;
   nix.extraOptions = ''
-    experimental-features = nix-command flakes
+    experimental-features = nix-command flakes ca-derivations ca-references
+    
+    # # cache for CA builds
+    # substituters = https://cache.ngi0.nixos.org/
+    # trusted-public-keys = cache.ngi0.nixos.org-1:KqH5CBLNSyX184S9BKZJo1LxrxJ9ltnY2uAs5c/f1MA=
   '';
 
   # test screen
   # boot.kernelParams = [ "drm.debug=0xe" ];
 
+  # Support NTFS
+  boot.supportedFilesystems = [ "ntfs" ];
+
+  services.sshguard.enable = true;
   services.fwupd.enable = true;
+  services.netdata.enable = true;
+  services.netdata.config = {
+    global = {
+      "debug log" = "syslog";
+      "access log" = "syslog";
+      "error log" = "syslog";
+      "memory mode" = "dbengine";
+      "page cache size" = 16;
+      "dbengine multihost disk space" = 512;
+    };
+    "plugin:go.d" = {
+      "command options" = "-c ${goConf}";
+    };
+  };
+  services.nginx.virtualHosts.localhost = {
+    # Make sure we don't accidentally serve wrong virtualhosts
+    default = lib.mkForce true;
+    # Serve /nginx_status, only on localhost
+    locations = {
+      "^~ /nginx_status" = {
+        extraConfig = ''
+          stub_status on;
+          access_log off;
+          allow 127.0.0.1;
+          allow ::1;
+          deny all;
+        '';
+      };
+    };
+  };
+  services.nginx.enableReload = true;
 
   networking.hostName = "wmertens-nixos"; # Define your hostname.
 
@@ -51,12 +102,16 @@
     pciutils
     usbutils
     binutils-unwrapped # strings etc
-
     # ntfs3g
     # libguestfs
     # libguestfs-appliance
 
+    # EID
     eid-mw
+
+    # Printer
+    gutenprint
+    cnijfilter2
 
     # chromecast
     (google-chrome.override {
@@ -100,10 +155,21 @@
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
 
-  networking.extraHosts = "127.0.0.1 cordeel-sync.stratokit.io";
+  networking.extraHosts = ''
+    188.118.0.72 portal.renotec.be
+  '';
 
-  # Home Assistant
-  services.home-assistant.enable = true;
+  # services.osticket.enable = true;
+  # services.osticket.withSetup = false;
+  # services.osticket.virtualHost = { serverName = "localhost"; };
+  # services.osticket.plugins = {
+  #   inherit (pkgs.callPackage ./nixos/osticket/plugins.nix { }) slack;
+  # };
+
+  # # VirtualBox
+  # virtualisation.virtualbox.host.enable = true;
+  # virtualisation.virtualbox.host.enableExtensionPack = true;
+  # users.extraGroups.vboxusers.members = [ "wmertens" ];
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
   # users.users.jane = {

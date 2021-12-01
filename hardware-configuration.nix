@@ -23,7 +23,14 @@
   boot.loader.efi.canTouchEfiVariables = true;
   boot.loader.grub.enableCryptodisk = true;
   boot.loader.grub.efiSupport = true;
+  boot.loader.grub.gfxmodeEfi = "1920x1080";
+  boot.loader.grub.theme = pkgs.nixos-grub2-theme;
   boot.loader.grub.device = "nodev";
+  boot.loader.grub.extraEntries = ''
+    menuentry "Windows" {
+      chainloader /efi/Microsoft/Boot/bootmgfw.efi
+    }
+  '';
 
   hardware.enableRedistributableFirmware = true;
   hardware.cpu.intel.updateMicrocode = true;

@@ -35,6 +35,9 @@
     screen
     tree
     file
+    coreutils
+    inetutils
+    dig
   ];
 
   programs.bash.enableCompletion = true;

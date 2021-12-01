@@ -43,10 +43,11 @@
   # ];
 
   services.xserver.displayManager.gdm.enable = true;
-  #services.xserver.displayManager.gdm.wayland = true;
+  services.xserver.displayManager.gdm.wayland = true;
+  services.xserver.desktopManager.gnome.enable = true;
+  services.gnome.chrome-gnome-shell.enable = true;
   # services.xserver.desktopManager.plasma5.enable = true;
-  services.xserver.desktopManager.gnome3.enable = true;
-  services.gnome3.chrome-gnome-shell.enable = true;
+
   services.flatpak.enable = true;
 }
 

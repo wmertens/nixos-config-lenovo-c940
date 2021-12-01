@@ -1,37 +1,36 @@
-{ stdenv, fetchgit, autoconf, automake, utillinux, btrfs-progs }:
+{ stdenv, lib, fetchFromGitHub, autoreconfHook, utillinux }:
 
 stdenv.mkDerivation rec {
-  version = "1.16.1";
-  name = "swapspace-${version}";
+  pname = "swapspace";
+  version = "1.17";
 
-  src = fetchgit {
-    url = "https://github.com/Tookmund/Swapspace.git";
-    rev = "refs/tags/v${version}";
-    sha256 = "1hbxaq05zdfhw5c8lypnl1qvh7n9ng0nawlizs9g6l77z8sn0ji8";
-    fetchSubmodules = false;
+  src = fetchFromGitHub {
+    owner = "Tookmund";
+    repo = "Swapspace";
+    rev = "v${version}";
+    sha256 = "06xvmyy1fp94h00k9nn929j00ca3w12fiz07wf9az6srxa8i4ndz";
   };
 
-  # TODO patch runcommands to include path to mkswap, swapon/off, btrfs (optional)
   patchPhase = ''
     sed -e 's@"mkswap"@"${utillinux}/bin/mkswap"@' \
       -e 's@"/sbin/swapon"@"${utillinux}/bin/swapon"@' \
       -e 's@"/sbin/swapoff"@"${utillinux}/bin/swapoff"@' \
-      -e 's@"btrfs"@"${btrfs-progs}/bin/btrfs"@' \
       -i src/support.c src/swaps.c
+  '';
+
+  postInstall = ''
+    mkdir $out/bin
+    mv $out/sbin/swapspace $out/bin/swapspace
+    rmdir $out/sbin
+    rm -r $out/var
   '';
 
   enableParallelBuilding = true;
 
-  buildInputs = [ autoconf automake ];
+  nativeBuildInputs = [ autoreconfHook ];
 
-  preConfigure = ''
-    autoreconf -i
-  '';
-
-  makeFlags = [ "PREFIX=$(out)" ];
-
-  meta = with stdenv.lib; {
-    homepage = "https://github.com/Tookmund/Swapspace/tree/v1.16.1";
+  meta = with lib; {
+    homepage = "https://github.com/Tookmund/Swapspace";
     description =
       "Dynamically add and remove swapfiles based on memory pressure";
     license = licenses.gpl3;

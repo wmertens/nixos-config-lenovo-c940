@@ -1,0 +1,44 @@
+--- /nix/store/q4c1nl8z7j2py4ki3dixhj8z5yvcxzi1-uvdesk-1.0.12/public/scripts/wizard.js	1970-01-01 01:00:01.000000000 +0100
++++ ./public/scripts/wizard.js	2021-01-16 15:23:44.660262660 +0100
+@@ -32,13 +32,13 @@
+             updateConfigurations: function () {
+                 // execute next commands after arrival of network request's response
+                 (async () => {
+-                    this.$el.find('#wizard-finalizeInstall').html(this.installation_process_template({ currentStep: 'load-configurations' }));
+-                    this.$el.find('#wizard-finalizeInstall .installation-progress-loader').html(this.wizard.wizard_icons_loader_template());
+-                    await $.post('./wizard/xhr/load/configurations').fail(response => {
+-                        if (response.status == 500) {
+-                            this.$el.find('#error-message-bar').html(JSON.parse(response.responseText).errorMessage); 
+-                        }
+-                    });
++                    // this.$el.find('#wizard-finalizeInstall').html(this.installation_process_template({ currentStep: 'load-configurations' }));
++                    // this.$el.find('#wizard-finalizeInstall .installation-progress-loader').html(this.wizard.wizard_icons_loader_template());
++                    // await $.post('./wizard/xhr/load/configurations').fail(response => {
++                    //     if (response.status == 500) {
++                    //         this.$el.find('#error-message-bar').html(JSON.parse(response.responseText).errorMessage); 
++                    //     }
++                    // });
+                     
+                     this.$el.find('#wizard-finalizeInstall').html(this.installation_process_template({ currentStep: 'load-migrations' }));
+                     this.$el.find('#wizard-finalizeInstall .installation-progress-loader').html(this.wizard.wizard_icons_loader_template());
+@@ -760,13 +760,13 @@
+                     view: UVDeskCommunitySystemRequirementsView,
+                     model: UVDeskCommunitySystemRequirementsModel
+                 },
+-                {
+-                    isActive: false,
+-                    isChecked: false,
+-                    path: 'configure-database',
+-                    view: UVDeskCommunityDatabaseConfigurationView,
+-                    model: UVDeskCommunityDatabaseConfigurationModel
+-                },
++                // {
++                //     isActive: false,
++                //     isChecked: false,
++                //     path: 'configure-database',
++                //     view: UVDeskCommunityDatabaseConfigurationView,
++                //     model: UVDeskCommunityDatabaseConfigurationModel
++                // },
+                 {
+                     isActive: false,
+                     isChecked: false,

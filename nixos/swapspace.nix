@@ -22,7 +22,7 @@ in {
         type = types.path;
         default = "/var/lib/swap";
         description = ''
-          Location of the swap files. This directory will be restrticted to root.
+          Location of the swap files. This directory will be restricted to root.
         '';
       };
 
@@ -66,26 +66,12 @@ in {
   ###### implementation
 
   config = mkIf cfg.enable {
+    systemd.tmpfiles.rules = [ "d '${cfg.path}' 0700 - - - - " ];
     systemd.services.swapspace = with pkgs; {
       description = "SwapSpace Daemon";
-      preStart = ''
-        set -e
-        p="${cfg.path}"
-        if [ ! -e "$p" ]; then
-          mkdir -p "$p"
-          # Test if btrfs fs, don't load the dependency
-          if btrfs fi df "$p" >/dev/null 2>&1; then
-            rmdir "$p"
-            # Make a separate subvol so noCOW does not inhibit snapshots
-            btrfs subvol create "$p"
-          fi
-        fi
-        chmod 700 "$p"
-      '';
       serviceConfig = {
         Type = "simple";
-        ExecStart =
-          ''${pkgs.swapspace}/sbin/swapspace --swappath="${cfg.path}"''
+        ExecStart = ''${pkgs.swapspace}/bin/swapspace --swappath="${cfg.path}"''
           + optionalString (cfg.cooldown != null)
           " --cooldown=${toString cfg.cooldown}"
           + optionalString (cfg.minSwapSize != null)
@@ -95,7 +81,6 @@ in {
         Restart = "always";
         RestartSec = 30;
       };
-      after = [ "local-fs.target" "systemd-udev-settle.service" ];
       wantedBy = [ "multi-user.target" ];
     };
   };
