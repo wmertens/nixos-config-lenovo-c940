@@ -2,22 +2,26 @@
 # Everything works except for the fingerprint scanner - it doesn't have an OSS driver,
 # it's a Synaptics device with Match-On-Host recognition so unlikely to ever work with Linux
 
-{ config, lib, pkgs, options, ... }:
+{ config, lib, pkgs, options, nixos-hardware, ... }:
 
-# # https://github.com/NixOS/nixos-hardware
-# let nh = builtins.getFlake "nixos-hardware";
-# in {
+# # https://github.com/NixOS/nixos-hardware/issues/179
+# let
+#   # nh = (builtins.getFlake (builtins.toString ./.)).outputs.nixos-hardware.nixosModules;
+#   nh = nixos-hardware.nixosModules;
+# in
 {
   imports = [
     # nixos-hardware configurations
     # (nh + "/common/cpu/intel")
     # (nh + "/common/pc/ssd")
     # (nh + "/common/pc/laptop")
-    # (nh + "/common/pc/laptop/ahci-")
-    <nixos-hardware/common/cpu/intel>
-    <nixos-hardware/common/pc/ssd>
-    <nixos-hardware/common/pc/laptop>
-    <nixos-hardware/common/pc/laptop/acpi_call.nix>
+    # (nh + "/common/pc/laptop/acpi_call.nix")
+
+    # disabled due to flakes
+    # <nixos-hardware/common/cpu/intel>
+    # <nixos-hardware/common/pc/ssd>
+    # <nixos-hardware/common/pc/laptop>
+    # <nixos-hardware/common/pc/laptop/acpi_call.nix>
   ];
 
   # Rotation support for tablet modes
