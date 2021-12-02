@@ -36,7 +36,7 @@ in
   # Use all the Nix goodness
   # hmm, maybe later
   # nixpkgs.config.contentAddressedByDefault = true;
-  nix.package = pkgs.nixUnstable;
+  nix.package = pkgs.nix_2_4;
   nix.extraOptions = ''
     experimental-features = nix-command flakes ca-derivations ca-references
     
