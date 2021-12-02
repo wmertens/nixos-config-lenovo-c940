@@ -7,6 +7,9 @@
     nixosConfigurations.wmertens-nixos = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
+        # Use the flake path for the nix path
+        { nix.nixPath = [ "nixpkgs=${nixpkgs.outPath}" ]; }
+
         ./configuration.nix
         # moved from c940 config
         nixos-hardware.nixosModules.common-cpu-intel
