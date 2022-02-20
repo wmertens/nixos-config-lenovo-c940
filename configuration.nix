@@ -150,9 +150,7 @@ in
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
 
-  networking.extraHosts = ''
-    188.118.0.72 portal.renotec.be
-  '';
+  networking.extraHosts = if builtins.pathExists ./extraHosts.conf then builtins.readFile ./extraHosts.conf else "";
 
   # services.osticket.enable = true;
   # services.osticket.withSetup = false;
