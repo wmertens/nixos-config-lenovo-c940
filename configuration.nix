@@ -113,11 +113,6 @@ in
     gutenprint
     cnijfilter2
 
-    # chromecast
-    (google-chrome.override {
-      # Chromecast
-      commandLineArgs = "--load-media-router-component-extension=1";
-    })
   ];
 
   # EID
