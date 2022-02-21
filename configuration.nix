@@ -130,23 +130,18 @@ in
     # web
     80
     443
-    # sonos and upnp
-    1400
-    3400
-    3401
-    3500
-    40151
   ];
-  networking.firewall.allowedUDPPorts = [ 136 137 138 139 1900 1901 6969 ];
   # Chromecast
   services.avahi.enable = true;
 
-  networking.firewall.extraPackages = [ pkgs.conntrack_tools ];
-  networking.firewall.autoLoadConntrackHelpers = true;
+  # support SSDP https://serverfault.com/a/911286/9166
+  networking.firewall.extraPackages = [ pkgs.ipset ];
   networking.firewall.extraCommands = ''
-    nfct add helper ssdp inet udp
-    iptables --verbose -I OUTPUT -t raw -p udp --dport 1900 -j CT --helper ssdp
+    ipset create upnp hash:ip,port timeout 3
+    iptables -A OUTPUT -d 239.255.255.250/32 -p udp -m udp --dport 1900 -j SET --add-set upnp src,src --exist
+    iptables -A INPUT -p udp -m set --match-set upnp dst,dst -j ACCEPT
   '';
+
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
 
