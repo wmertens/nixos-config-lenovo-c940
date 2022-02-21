@@ -8,7 +8,10 @@
       system = "x86_64-linux";
       modules = [
         # Use the flake path for the nix path
-        { nix.nixPath = [ "nixpkgs=${nixpkgs.outPath}" ]; }
+        {
+          nix.nixPath = [ "nixpkgs=${nixpkgs.outPath}" ];
+          nix.registry.nixpkgs.flake = self.inputs.nixpkgs;
+        }
 
         ./configuration.nix
         # moved from c940 config
