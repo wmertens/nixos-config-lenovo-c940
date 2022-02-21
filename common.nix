@@ -27,6 +27,12 @@
     permitRootLogin = lib.mkForce "without-password";
   };
 
+  # SSH: set compression
+  programs.ssh.extraConfig = ''
+    Host * !localhost
+      Compression yes
+  '';
+
   environment.systemPackages = with pkgs; [
     vim
     git
