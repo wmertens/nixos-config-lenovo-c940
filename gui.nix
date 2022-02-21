@@ -7,6 +7,8 @@
   # i915 settings
   boot.extraModprobeConfig = "options i915 modeset=1 enable_fbc=1 fastboot=1";
 
+  environment.sessionVariables.NIXOS_OZONE_WL = "1";
+
   environment.systemPackages = with pkgs; [
     gnome3.gnome-tweak-tool
     gnome3.dconf-editor
