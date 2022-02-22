@@ -130,6 +130,8 @@ in
     # web
     80
     443
+    # Sonos
+    1400
   ];
   # Chromecast
   services.avahi.enable = true;
@@ -137,9 +139,11 @@ in
   # support SSDP https://serverfault.com/a/911286/9166
   networking.firewall.extraPackages = [ pkgs.ipset ];
   networking.firewall.extraCommands = ''
-    ipset create upnp hash:ip,port timeout 3
+    if ! ipset --quiet list upnp; then
+      ipset create upnp hash:ip,port timeout 3
+    fi
     iptables -A OUTPUT -d 239.255.255.250/32 -p udp -m udp --dport 1900 -j SET --add-set upnp src,src --exist
-    iptables -A INPUT -p udp -m set --match-set upnp dst,dst -j ACCEPT
+    iptables -A nixos-fw -p udp -m set --match-set upnp dst,dst -j nixos-fw-accept
   '';
 
   # Or disable the firewall altogether.
