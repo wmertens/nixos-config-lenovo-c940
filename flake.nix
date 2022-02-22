@@ -9,7 +9,16 @@
       modules = [
         # Use the flake path for the nix path
         {
-          nix.nixPath = [ "nixpkgs=${nixpkgs.outPath}" ];
+          nix.nixPath = [
+            # Point to a stable path so system updates immediately update
+            "nixpkgs=/run/current-system/nixpkgs"
+            # Allow using nixos-option to query current config
+            "nixos-config=/run/current-system/flake/configuration.nix"
+          ];
+          system.extraSystemBuilderCmds = ''
+            ln -s ${nixpkgs.outPath} $out/nixpkgs
+            ln -s ${self.outPath} $out/flake
+          '';
           nix.registry.nixpkgs.flake = self.inputs.nixpkgs;
         }
 
