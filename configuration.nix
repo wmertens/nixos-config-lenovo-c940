@@ -133,8 +133,9 @@ in
     # Sonos
     1400
   ];
-  # Chromecast
+  # mDNS support for Chromecast and Canon printing
   services.avahi.enable = true;
+  services.avahi.nssmdns = true;
 
   # support SSDP https://serverfault.com/a/911286/9166
   networking.firewall.extraPackages = [ pkgs.ipset ];

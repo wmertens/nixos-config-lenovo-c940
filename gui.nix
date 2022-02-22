@@ -28,6 +28,8 @@
 
   # Enable CUPS to print documents.
   services.printing.enable = true;
+  # Support Canon
+  services.printing.drivers = [ pkgs.cnijfilter2 ];
 
   # Enable the X11 windowing system.
   services.xserver.enable = true;
