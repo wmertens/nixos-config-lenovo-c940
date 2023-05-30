@@ -33,10 +33,11 @@
 
   # Audio
   boot.blacklistedKernelModules = [ "snd_hda_intel" "snd_soc_skl" ];
-  # This can be removed when the default kernel is at least version 5.6
-  # https://github.com/NixOS/nixpkgs/pull/86168
-  boot.kernelPackages = lib.mkIf (lib.versionOlder pkgs.linux.version "5.6")
-    (lib.mkDefault pkgs.linuxPackages_5_6);
+
+  # platform api
+  services.udev.extraRules = ''
+    DRIVERS=="ideapad_acpi", GROUP="wheel", MODE="0664"
+  '';
 
   # This can be removed when PulseAudio is at least version 14
   # https://wiki.archlinux.org/index.php/Lenovo_ThinkPad_X1_Carbon_(Gen_7)#Audio

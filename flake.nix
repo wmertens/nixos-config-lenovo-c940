@@ -1,6 +1,6 @@
 {
   description = "NixOS configuration with flakes";
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-21.11";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
   inputs.nixos-hardware.url = "github:NixOS/nixos-hardware/master";
 
   outputs = { self, nixpkgs, nixos-hardware }: {
@@ -20,6 +20,10 @@
             ln -s ${self.outPath} $out/flake
           '';
           nix.registry.nixpkgs.flake = self.inputs.nixpkgs;
+          
+          # module._args = {
+          #   inherit (self) modulesPath;            
+          # };
         }
 
         ./configuration.nix
@@ -29,9 +33,9 @@
         nixos-hardware.nixosModules.common-pc-laptop
         nixos-hardware.nixosModules.common-pc-laptop-acpi_call
       ];
-      extraArgs = {
-        inherit (self) modulesPath;
-      };
+      # extraArgs = {
+      #   inherit (self) modulesPath;
+      # };
     };
   };
 }

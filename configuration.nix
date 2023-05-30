@@ -11,8 +11,16 @@ let
     '';
 in
 {
+# temp
+services.plantuml-server.enable=true;
+
+
   # Don't kill BT on rebuild switch
   systemd.services.bluetooth.unitConfig.X-RestartIfChanged = false;
+
+  systemd.services.netdata.serviceConfig.Type = "forking";
+  systemd.services.netdata.serviceConfig.ExecStart = lib.mkForce
+    "${pkgs.netdata}/bin/netdata -P /run/netdata/netdata.pid -d -c /etc/netdata/netdata.conf";
 
   imports = [
     # Customisations over default nixpkgs tree
@@ -36,14 +44,15 @@ in
   # Use all the Nix goodness
   # hmm, maybe later
   # nixpkgs.config.contentAddressedByDefault = true;
-  nix.package = pkgs.nix_2_4;
-  nix.extraOptions = ''
-    experimental-features = nix-command flakes ca-derivations ca-references
-    
-    # # cache for CA builds
-    # substituters = https://cache.ngi0.nixos.org/
-    # trusted-public-keys = cache.ngi0.nixos.org-1:KqH5CBLNSyX184S9BKZJo1LxrxJ9ltnY2uAs5c/f1MA=
-  '';
+  # nix-direnv assist
+  nix.settings.keep-outputs = true;
+  nix.settings.keep-derivations = true;
+  # nix.extraOptions = ''
+  #   # cache for CA builds
+  #   substituters = https://cache.ngi0.nixos.org/
+  #   trusted-public-keys = cache.ngi0.nixos.org-1:KqH5CBLNSyX184S9BKZJo1LxrxJ9ltnY2uAs5c/f1MA=
+  # '';
+  nix.settings.trusted-users = [ "root" "wmertens" ];
 
   # test screen
   # boot.kernelParams = [ "drm.debug=0xe" ];
@@ -85,6 +94,8 @@ in
   };
   services.nginx.enableReload = true;
 
+  programs.droidcam.enable = true;
+ 
   networking.hostName = "wmertens-nixos"; # Define your hostname.
 
   # Select internationalisation properties.
@@ -152,6 +163,7 @@ in
 
   networking.extraHosts = if builtins.pathExists ./extraHosts.conf then builtins.readFile ./extraHosts.conf else "";
 
+  networking.networkmanager.plugins = [ pkgs.networkmanager-openconnect ];
   # services.osticket.enable = true;
   # services.osticket.withSetup = false;
   # services.osticket.virtualHost = { serverName = "localhost"; };
@@ -163,6 +175,13 @@ in
   # virtualisation.virtualbox.host.enable = true;
   # virtualisation.virtualbox.host.enableExtensionPack = true;
   # users.extraGroups.vboxusers.members = [ "wmertens" ];
+
+  virtualisation.libvirtd.enable = true;
+  virtualisation.libvirtd.allowedBridges = [ "all" ];
+  services.nfs.server.enable = true;
+  services.nfs.server.exports = ''
+    /home/wmertens 192.168.122.0/24(rw,insecure,all_squash,anonuid=${toString config.users.extraUsers.wmertens.uid})
+  '';
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
   # users.users.jane = {

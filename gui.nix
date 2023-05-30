@@ -10,8 +10,8 @@
   environment.sessionVariables.NIXOS_OZONE_WL = "1";
 
   environment.systemPackages = with pkgs; [
-    gnome3.gnome-tweak-tool
-    gnome3.dconf-editor
+    gnome.gnome-tweaks
+    gnome.dconf-editor
     # appimage-run
     # Wayland
     wl-clipboard
@@ -25,6 +25,8 @@
     enableSSHSupport = true;
     pinentryFlavor = "gnome3";
   };
+
+  programs.kdeconnect.enable = true;
 
   # Enable CUPS to print documents.
   services.printing.enable = true;
@@ -49,7 +51,7 @@
   services.xserver.displayManager.gdm.enable = true;
   services.xserver.displayManager.gdm.wayland = true;
   services.xserver.desktopManager.gnome.enable = true;
-  services.gnome.chrome-gnome-shell.enable = true;
+  services.gnome.gnome-browser-connector.enable = true;
   # services.xserver.desktopManager.plasma5.enable = true;
 
   services.flatpak.enable = true;

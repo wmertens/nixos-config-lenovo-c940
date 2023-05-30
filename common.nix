@@ -2,10 +2,8 @@
 
 {
   nixpkgs.system = "x86_64-linux";
-  nix.autoOptimiseStore = true;
-  nix.extraOptions = ''
-    experimental-features = nix-command
-  '';
+  nix.settings.auto-optimise-store = true;
+  nix.settings.experimental-features = "nix-command flakes ca-derivations";
 
   # Use zram swapping
   zramSwap.enable = true;
