@@ -28,7 +28,6 @@
   # TODO figure out disabling keyboard/trackpad
   hardware.sensor.iio.enable = true;
 
-  hardware.video.hidpi.enable = true;
   console.font = "${pkgs.terminus_font}/share/consolefonts/ter-u28n.psf.gz";
 
   # Audio

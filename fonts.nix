@@ -43,6 +43,7 @@
       fantasque-sans-mono
       fira-code
       hack-font
+      #intel-one-mono
     ];
   };
 

@@ -8,7 +8,7 @@
   # Use zram swapping
   zramSwap.enable = true;
 
-  boot.cleanTmpDir = true;
+  boot.tmp.cleanOnBoot = true;
 
   networking.resolvconf.extraConfig = ''
     name_servers_append="1.1.1.1"
@@ -22,7 +22,7 @@
 
   services.openssh = {
     enable = true;
-    permitRootLogin = lib.mkForce "without-password";
+    settings.PermitRootLogin = lib.mkForce "without-password";
   };
 
   # SSH: set compression
