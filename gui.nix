@@ -54,6 +54,6 @@
   services.gnome.gnome-browser-connector.enable = true;
   # services.xserver.desktopManager.plasma5.enable = true;
 
-  services.flatpak.enable = true;
+  #services.flatpak.enable = true;
 }
 

@@ -11,10 +11,6 @@ let
     '';
 in
 {
-# temp
-services.plantuml-server.enable=true;
-
-
   # Don't kill BT on rebuild switch
   systemd.services.bluetooth.unitConfig.X-RestartIfChanged = false;
 

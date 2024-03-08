@@ -9,6 +9,9 @@
 
   networking.networkmanager.enable = true;
 
+  # Screen orientation
+  hardware.sensor.iio.enable = true;
+
   # Use the power daemon thingie in Gnome
   services.tlp.enable = false;
   services.tlp.settings = {

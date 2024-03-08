@@ -34,7 +34,7 @@
     #     serif = [ "FreeSerif" ];
     #   };
     # };
-    fonts = with pkgs; [
+    packages = with pkgs; [
       noto-fonts-emoji
 
       cascadia-code
@@ -43,7 +43,7 @@
       fantasque-sans-mono
       fira-code
       hack-font
-      #intel-one-mono
+      intel-one-mono
     ];
   };
 
