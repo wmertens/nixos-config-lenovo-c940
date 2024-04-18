@@ -26,6 +26,7 @@ in
     # own configurations
     ./lenovo-c940.nix
     ./hardware-configuration.nix
+    ./keyboard.nix
     ./common.nix
     ./laptop.nix
     ./btrfs.nix
