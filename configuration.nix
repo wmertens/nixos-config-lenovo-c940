@@ -24,12 +24,11 @@ in
     ./nixpkgs/default.nix
 
     # own configurations
-    ./lenovo-c940.nix
+    ./lenovo-yoga-7-pro.nix
     ./hardware-configuration.nix
     ./keyboard.nix
     ./common.nix
     ./laptop.nix
-    ./btrfs.nix
     ./fonts.nix
     ./sound.nix
     ./gui.nix
@@ -92,7 +91,7 @@ in
   services.nginx.enableReload = true;
 
   programs.droidcam.enable = true;
- 
+
   networking.hostName = "wmertens-nixos"; # Define your hostname.
 
   # Select internationalisation properties.
@@ -121,6 +120,7 @@ in
     gutenprint
     cnijfilter2
 
+    bcachefs-tools
   ];
 
   # EID
@@ -189,11 +189,13 @@ in
     description = "Wout Mertens";
     uid = 1000;
     isNormalUser = true;
-    extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
+    extraGroups = [ "wheel" "adbusers" ]; # Enable ‘sudo’ for the user.
     openssh.authorizedKeys.keys = [
       "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMy/AItxfpvrKf+bS9CK3rMwv4vhHEGhU3toAMqE+WQWebSVrEZvKIE3hE+o8ysVmTleKmU5in1h1yubVmUUfjY= /home/wmertens/.ssh/id_ecdsa"
     ];
   };
+
+  programs.adb.enable = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
@@ -201,7 +203,12 @@ in
   # this value at the release version of the first install of this system.
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
-  system.stateVersion = "20.09"; # Did you read the comment?
+  system.stateVersion = "23.11"; # Did you read the comment?
 
+  # Use the systemd-boot EFI boot loader.
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+  # bcachefs
+  boot.kernelPackages = pkgs.linuxPackages_latest;
 }
 

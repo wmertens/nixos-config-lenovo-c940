@@ -28,7 +28,7 @@
 
         ./configuration.nix
         # moved from c940 config
-        nixos-hardware.nixosModules.common-cpu-intel
+        nixos-hardware.nixosModules.common-cpu-amd
         nixos-hardware.nixosModules.common-pc-ssd
         nixos-hardware.nixosModules.common-pc-laptop
         nixos-hardware.nixosModules.common-pc-laptop-acpi_call

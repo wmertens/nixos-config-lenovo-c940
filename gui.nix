@@ -1,11 +1,11 @@
 { config, pkgs, options, lib, ... }:
 
 {
-  # External brightness
-  boot.extraModulePackages = [ config.boot.kernelPackages.ddcci-driver ];
-  boot.kernelModules = [ "ddcci" ];
+  # External brightness (but fails on latest)
+  #boot.extraModulePackages = [ config.boot.kernelPackages.ddcci-driver ];
+  #boot.kernelModules = [ "ddcci" ];
   # i915 settings
-  boot.extraModprobeConfig = "options i915 modeset=1 enable_fbc=1 fastboot=1";
+  #boot.extraModprobeConfig = "options i915 modeset=1 enable_fbc=1 fastboot=1";
 
   environment.sessionVariables.NIXOS_OZONE_WL = "1";
 
@@ -23,7 +23,6 @@
   programs.gnupg.agent = {
     enable = true;
     enableSSHSupport = true;
-    pinentryFlavor = "gnome3";
   };
 
   programs.kdeconnect.enable = true;
