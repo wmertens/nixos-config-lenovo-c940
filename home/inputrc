@@ -1,0 +1,49 @@
+set completion-ignore-case on
+set convert-meta off
+set enable-bracketed-paste on
+set show-all-if-ambiguous on
+set show-all-if-unmodified on
+set skip-completed-text on
+set visible-stats on
+set colored-completion-prefix on
+set colored-stats on
+set expand-tilde on
+
+# These were made by doing bind -p >> .inputrc and editing
+# alias-expand-line (not bound)
+"\C-n": next-history
+"\eOD": backward-char
+"\e[D": backward-char
+"\eOC": forward-char
+"\e[C": forward-char
+"\eOB": history-search-forward
+"\e[B": history-search-forward
+"\C-p": previous-history
+"\eOA": history-search-backward
+"\e[A": history-search-backward
+
+# Mac key bindings
+"\e[1;9C": end-of-line
+"\e[1;9D": beginning-of-line
+
+"\C-b": backward-word
+"\e[5D": backward-word
+"\e[1;5D": backward-word
+"\C-f": forward-word
+"\e[5C": forward-word
+"\e[1;5C": forward-word
+
+"\C-[[3~": delete-char
+"\e\C-[[3~": kill-word
+
+"\e[1~": beginning-of-line
+"\e[4~": end-of-line
+
+#"\C-h": backward-kill-word
+"\C-w": backward-kill-word
+
+"\C-u": undo
+
+# this baby allows you to add arguments, it will go to the first space
+# and insert a space.
+"\C-t": "  "

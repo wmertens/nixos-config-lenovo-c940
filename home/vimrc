@@ -1,0 +1,92 @@
+" allow backspacing over everything in insert mode
+set backspace=indent,eol,start
+
+set modeline
+set modelines=5
+set nocompatible		" Use the cool new features
+set autoindent			" always set autoindenting on
+set history=50			" keep 50 lines of command line history
+set ruler			" show the cursor position all the time
+set showcmd			" display incomplete commands
+set incsearch			" do incremental searching
+set gfn=Andale\ Mono:h12	" set font for graphics mode
+filetype indent on
+filetype plugin on
+
+" Only do this part when compiled with support for autocommands.
+if has("autocmd")
+
+	" Enable file type detection.
+	" Use the default filetype settings, so that mail gets 'tw' set to 72,
+	" 'cindent' is on in C files, etc.
+	" Also load indent files, to automatically do language-dependent indenting.
+	filetype plugin indent on
+
+	" For all text files set 'textwidth' to 78 characters.
+	autocmd FileType text setlocal textwidth=78
+
+	" For all coffeescript files use 2-space tabs
+	autocmd FileType coffee setlocal expandtab ts=2 sw=2
+
+	" When editing a file, always jump to the last known cursor position.
+	" Don't do it when the position is invalid or when inside an event handler
+	" (happens when dropping a file on gvim).
+	autocmd BufReadPost *
+				\ if line("'\"") > 0 && line("'\"") <= line("$") |
+				\   exe "normal g`\"" |
+				\ endif
+
+endif " has("autocmd")
+
+colorscheme default
+if has("terminfo")
+	set t_Co=8
+	set t_Sf=[3%p1%dm
+	set t_Sb=[4%p1%dm
+	"  set mouse=a
+	syn on
+elseif has("gui")
+	syn on
+else
+	set t_Co=8
+	set t_Sf=[3%dm
+	set t_Sb=[4%dm
+endif
+
+map <C-T> :&g<C-J>
+
+" Make backspace in normal mode do deletion
+nmap <BS> X
+
+" Home and End keys under konsole
+map <C-[>[H <Home>
+map! <C-[>[H <Home>
+map <C-[>[F <End>
+map! <C-[>[F <End>
+
+" Extra ctrl-a and ctrl-e mappings
+map <C-A> <Home>
+map! <C-A> <Home>
+map <C-E> <End>
+map! <C-E> <End>
+" Prev and next word
+map <C-Space> <S-Right>
+map! <C-Space> <S-Right>
+map <C-F> <S-Right>
+map! <C-F> <S-Right>
+map <C-B> <S-Left>
+map! <C-B> <S-Left>
+
+" Pico-like mappings
+" Undo and redo
+imap <C-U> <C-O>u
+imap <C-R> <C-O><C-R>
+" Save
+imap <C-X> <Esc>:x<C-J>
+nmap  <C-X> :x<C-J>
+" Justify
+imap <C-J> <C-O>gqap
+nmap  <C-J> gqap
+" Kut
+imap <C-K> <C-O>dd
+nmap <C-K> dd
