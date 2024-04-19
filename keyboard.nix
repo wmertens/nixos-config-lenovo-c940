@@ -1,10 +1,22 @@
+# TODO add keyd group + palm rejection in nixpkgs; add support in stage1
 {
+  # make palm rejection work with keyd
+  environment.etc."libinput/local-overrides.quirks".text = ''
+    [Serial Keyboards]
+    MatchUdevType=keyboard
+    MatchName=keyd virtual keyboard
+    AttrKeyboardIntegration=internal
+  '';
+
   services.keyd = {
     enable = true;
     keyboards = {
       default = {
         ids = [ "*" ];
         # https://github.com/rvaiya/keyd/blob/master/docs/keyd.scdoc
+        # play with it by
+        # sudo bash -c 'cd /etc/keyd; cp -H default.conf t;mv -f t default.conf; chown wmertens default.conf'
+        # and then edit /etc/keyd/default.conf + restart keyd
         extraConfig = ''
           # Emulate the Textblade layout
           # https://waytools.rocks/keyboards/maps/qwerty
@@ -80,7 +92,7 @@
           capslock = tab
 
           ########### TextBlade layers ###########
-          ### basic
+          ###### basic
           [main]
           # stickiness
           shift = oneshot(shift)
@@ -106,6 +118,8 @@
           # layer toggles
           space = overload(green, space)
           k+l = layer(macros)
+          k+l+; = layer(shiftmacros)
+          k+l+space = layer(fns)
           d+f = layer(edit)
           a+s+d+f = layer(app)
 
@@ -117,7 +131,7 @@
           [controlmeta:C-M]
           [altmeta:A-M]
           
-          ### green: lots of symbols within easy reach
+          ###### green: lots of symbols within easy reach
           [green]
           tab = ~
           q = 1
@@ -155,8 +169,14 @@
           , = ;
           . = :
           / = \
+          
+          backspace = C-backspace
+          [ = C-backspace
+          ] = C-backspace
+          enter = C-enter
+          \ = C-enter
 
-          ### edit: cursor keys and editing shortcuts
+          ###### edit: cursor keys and editing shortcuts
           [edit]
           # add the ring finger for shift
           s = layer(shift)
@@ -198,8 +218,12 @@
           n = C-k
           # find
           u = C-f
-          
-          ### app: navigation shortcuts
+          tab = S-tab
+          backspace = C-S-k
+          [ = C-S-k
+          ] = C-S-k
+
+          ###### app: navigation shortcuts
           # import Alt so that it's sticky between keypresses
           [app:A]
           ## home row: tabs
@@ -210,6 +234,8 @@
           h = C-t
           # close tab
           ' = C-w
+          # undo close tab
+          o = S-C-t
 
           ## top row: windows
           # prev/next window of app
@@ -234,12 +260,27 @@
           # open new browser tab via Global Tab Shortcuts extension
           , = S-A-s
 
-          # Macro layer: we apply all modifiers for easy and non-clashing shortcut defining
+          ###### Macro layer: we apply all modifiers for easy and non-clashing shortcut defining
           # use extensions like run-or-raise to define global application shortcuts
           [macros:M-A-C-S]
-          space = swap(greenmacros)
-          # green+macros don't get shift
-          [greenmacros:M-A-C]
+          ; = swap(shiftmacros)
+          space = swap(fns)
+          # "shifted" macros don't get shift :-P
+          [shiftmacros:M-A-C]
+
+          [fns]
+          q = f1
+          w = f2
+          e = f3
+          r = f4
+          t = f5
+          capslock = f12
+          a = f6
+          s = f7
+          d = f8
+          f = f9
+          g = f10
+          h = f11
         '';
       };
     };
