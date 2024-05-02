@@ -1,29 +1,34 @@
-{ config, lib, pkgs, options, nixos-hardware, ... }:
+{ config, lib, pkgs, options, specialArgs, ... }:
 
 # # https://github.com/NixOS/nixos-hardware/issues/179
 # let
 #   # nh = (builtins.getFlake (builtins.toString ./.)).outputs.nixos-hardware.nixosModules;
 #   nh = nixos-hardware.nixosModules;
 # in
+let t = specialArgs.flakeInputs.nixos-hardware.nixosModules; in
 {
   imports = [
-    # nixos-hardware configurations
-    # (nh + "/common/cpu/intel")
-    # (nh + "/common/pc/ssd")
-    # (nh + "/common/pc/laptop")
-    # (nh + "/common/pc/laptop/acpi_call.nix")
-
-    # disabled due to flakes
-    # <nixos-hardware/common/cpu/intel>
-    # <nixos-hardware/common/pc/ssd>
-    # <nixos-hardware/common/pc/laptop>
-    # <nixos-hardware/common/pc/laptop/acpi_call.nix>
+    t.lenovo-yoga-7-14ARH7.amdgpu
+    # # fixes white flashing
+    t.common-cpu-amd-raphael-igpu
+    # # PRIME
+    t.common-gpu-nvidia
+    # hi res screen
+    t.common-hidpi
   ];
 
-  # Rotation support for tablet modes
-  # TODO figure out disabling keyboard/trackpad
+  # maybe not needed, for brightness sensor?
   hardware.sensor.iio.enable = true;
 
-  console.font = "${pkgs.terminus_font}/share/consolefonts/ter-u28n.psf.gz";
+  hardware.nvidia = {
+    modesetting.enable = lib.mkDefault true;
+    powerManagement.enable = lib.mkDefault true;
 
+    prime = {
+      amdgpuBusId = lib.mkDefault "PCI:64:0:0";
+      nvidiaBusId = "PCI:1:0:0";
+    };
+  };
+
+  # console.font = "${pkgs.terminus_font}/share/consolefonts/ter-u28n.psf.gz";
 }

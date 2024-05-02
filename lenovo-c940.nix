@@ -17,11 +17,10 @@
     # (nh + "/common/pc/laptop")
     # (nh + "/common/pc/laptop/acpi_call.nix")
 
-    # disabled due to flakes
-    # <nixos-hardware/common/cpu/intel>
-    # <nixos-hardware/common/pc/ssd>
-    # <nixos-hardware/common/pc/laptop>
-    # <nixos-hardware/common/pc/laptop/acpi_call.nix>
+    nixos-hardware.nixosModules.common-cpu-amd
+    nixos-hardware.nixosModules.common-pc-ssd
+    nixos-hardware.nixosModules.common-pc-laptop
+    nixos-hardware.nixosModules.common-pc-laptop-acpi_call
   ];
 
   # Rotation support for tablet modes
