@@ -6,9 +6,10 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
+    nix-alien.url = "github:thiagokokada/nix-alien";
   };
 
-  outputs = { self, nixpkgs, nixos-hardware, home-manager, ... }:
+  outputs = { self, nixpkgs, nixos-hardware, home-manager, nix-alien, ... } @ flakeInputs:
     let
       system = "x86_64-linux";
       username = "wmertens";
@@ -16,7 +17,7 @@
       # use own overlays
       pkgs = import nixpkgs {
         inherit system;
-        overlays = [ self.overlays.default ];
+        overlays = [ self.overlays.default nix-alien.overlays.default ];
       };
     in
     {

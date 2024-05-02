@@ -34,8 +34,7 @@ in
     ./gui.nix
   ];
 
-  # todo nice boot screen with windows selection
-  # todo cpufreq governor GUI
+  # todo nicer boot screen
 
   # Use all the Nix goodness
   # hmm, maybe later
@@ -195,7 +194,11 @@ in
     ];
   };
 
-  programs.adb.enable = true;
+  # Android
+  # programs.adb.enable = true;
+
+  # enable third-party binaries
+  programs.nix-ld.enable = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
