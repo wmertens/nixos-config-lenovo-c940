@@ -25,7 +25,21 @@
       overlays.default = (final: prev: {
         wout-scripts = final.callPackage ./home/wout-scripts.nix { };
         google-chrome = prev.google-chrome.override { commandLineArgs = "--enable-features=TouchpadOverscrollHistoryNavigation"; };
-        home-manager = let hm = home-manager.packages.${system}.default; in prev.writeScriptBin "home-manager" ''${hm}/bin/home-manager --flake ${self.outPath} "$@"'';
+        home-manager = let hm = home-manager.packages.${system}.default; in prev.writeScriptBin "home-manager" ''
+          function getLink() {
+            ls -rtd /nix/var/nix/profiles/per-user/$USER/*link|tail -1
+          }
+          prev=`getLink`
+          ${hm}/bin/home-manager --flake ${self.outPath} "$@"
+          exitcode=$?
+          if [ $exitcode -eq 0 ]; then
+            next=`getLink`
+            if [ "$prev" != "$next" ]; then
+              nix store diff-closures $prev $next
+            fi
+          fi
+          exit $exitcode
+        '';
       });
 
       # NixOS configuration
@@ -73,7 +87,27 @@
         ];
       };
 
-      # allow `nix run . switch` to work as home-manager with the current flake
-      packages.${system}.default = pkgs.home-manager;
+      packages.${system} = {
+        # allow `nix run . switch` to work as home-manager with the current flake
+        default = pkgs.home-manager;
+        # todo secrets so we can use flake instead of path
+        nixos = pkgs.writeScriptBin "nixos" ''
+          function getLink() {
+            ls -rtd /nix/var/nix/profiles/system*link|tail -1
+          }
+          prev=`getLink`
+          action=''${1:-switch}
+          echo "Running sudo nixos-rebuild $action"
+          sudo nixos-rebuild $action --flake path:/home/wmertens/Projects/wout-config "$@"
+           exitcode=$?
+          if [ $exitcode -eq 0 ]; then
+            next=`getLink`
+            if [ "$prev" != "$next" ]; then
+              nix store diff-closures $prev $next
+            fi
+          fi
+          exit $exitcode
+        '';
+      };
     };
 }
