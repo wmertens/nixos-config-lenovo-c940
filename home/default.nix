@@ -21,7 +21,10 @@ in
   programs.command-not-found.enable = false;
 
   #services.pulseeffects.enable = true;
-  programs.home-manager.enable = true;
+
+  # we use the one from the flake
+  # programs.home-manager.enable = true;
+
   #  programs.go.enable = true;
 
   services.keybase.enable = true;

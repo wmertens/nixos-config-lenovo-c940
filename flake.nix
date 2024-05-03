@@ -19,27 +19,55 @@
         inherit system;
         overlays = [ self.overlays.default nix-alien.overlays.default ];
       };
+      # todo get the path programmatically. Needs to be the source, not the output path
+      flakePath = "/home/wmertens/Projects/wout-config";
+
+      hm = let realHM = home-manager.packages.${system}.default; in pkgs.writeScriptBin "home-manager" ''
+        function getLink() {
+          realpath /nix/var/nix/profiles/per-user/$USER/profile
+        }
+        prev=`getLink`
+        ${realHM}/bin/home-manager --flake ${flakePath} "$@"
+        exitcode=$?
+        if [ $exitcode -eq 0 ]; then
+          next=`getLink`
+          if [ "$prev" != "$next" ]; then
+            nix store diff-closures $prev $next
+          fi
+        fi
+        exit $exitcode
+      '';
+      # todo secrets so we can use flake instead of path:
+      nixos = pkgs.writeScriptBin "nixos" ''
+        function getLink() {
+          realpath /nix/var/nix/profiles/system
+        }
+        prev=`getLink`
+        if [ -n "$1" ]; then
+          action="$1"
+          shift
+        else
+          action=switch
+        fi
+        set -x
+        sudo ${pkgs.nixos-rebuild}/bin/nixos-rebuild $action --flake path:${flakePath} "$@"
+        exitcode=$?
+        set +x
+        if [ $exitcode -eq 0 ]; then
+          next=`getLink`
+          if [ "$prev" != "$next" ]; then
+            nix store diff-closures $prev $next
+          fi
+        fi
+        exit $exitcode
+      '';
     in
     {
       # Our overlays
       overlays.default = (final: prev: {
         wout-scripts = final.callPackage ./home/wout-scripts.nix { };
         google-chrome = prev.google-chrome.override { commandLineArgs = "--enable-features=TouchpadOverscrollHistoryNavigation"; };
-        home-manager = let hm = home-manager.packages.${system}.default; in prev.writeScriptBin "home-manager" ''
-          function getLink() {
-            ls -rtd /nix/var/nix/profiles/per-user/$USER/*link|tail -1
-          }
-          prev=`getLink`
-          ${hm}/bin/home-manager --flake ${self.outPath} "$@"
-          exitcode=$?
-          if [ $exitcode -eq 0 ]; then
-            next=`getLink`
-            if [ "$prev" != "$next" ]; then
-              nix store diff-closures $prev $next
-            fi
-          fi
-          exit $exitcode
-        '';
+        home-manager = hm;
       });
 
       # NixOS configuration
@@ -60,6 +88,13 @@
               ln -s ${self.outPath} $out/flake
             '';
             nix.registry.nixpkgs.flake = self.inputs.nixpkgs;
+          }
+          # add the helper scripts to the path
+          {
+            environment.systemPackages = [
+              hm
+              nixos
+            ];
           }
 
           ./configuration.nix
@@ -89,25 +124,9 @@
 
       packages.${system} = {
         # allow `nix run . switch` to work as home-manager with the current flake
-        default = pkgs.home-manager;
-        # todo secrets so we can use flake instead of path
-        nixos = pkgs.writeScriptBin "nixos" ''
-          function getLink() {
-            ls -rtd /nix/var/nix/profiles/system*link|tail -1
-          }
-          prev=`getLink`
-          action=''${1:-switch}
-          echo "Running sudo nixos-rebuild $action"
-          sudo nixos-rebuild $action --flake path:/home/wmertens/Projects/wout-config "$@"
-           exitcode=$?
-          if [ $exitcode -eq 0 ]; then
-            next=`getLink`
-            if [ "$prev" != "$next" ]; then
-              nix store diff-closures $prev $next
-            fi
-          fi
-          exit $exitcode
-        '';
+        default = hm;
+        home-manager = hm;
+        inherit nixos;
       };
     };
 }
