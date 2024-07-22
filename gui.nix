@@ -34,11 +34,11 @@
 
   # Enable the X11 windowing system.
   services.xserver.enable = true;
-  services.xserver.layout = "us";
+  services.xserver.xkb.layout = "us";
   # services.xserver.xkbOptions = "eurosign:e";
 
   # Enable touchpad support.
-  services.xserver.libinput.enable = true;
+  services.libinput.enable = true;
   # Enable synthetic input
   hardware.uinput.enable = true;
   i18n.inputMethod.enabled = "ibus";

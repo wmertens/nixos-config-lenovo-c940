@@ -8,7 +8,7 @@
 
   boot.kernelParams = [ "boot.shell_on_fail" ];
 
-  powerManagement.cpuFreqGovernor = lib.mkDefault "powersave";
+  powerManagement.cpuFreqGovernor = lib.mkDefault "ondemand";
   services.thermald.enable = true;
 
   boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "thunderbolt" "usb_storage" "sd_mod" ];
@@ -17,12 +17,14 @@
   boot.extraModulePackages = [ ];
 
   fileSystems."/" =
-    { device = "UUID=82ace8da-b608-450f-a397-f1b30c838560";
+    {
+      device = "UUID=82ace8da-b608-450f-a397-f1b30c838560";
       fsType = "bcachefs";
     };
 
   fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/60B9-DE1A";
+    {
+      device = "/dev/disk/by-uuid/60B9-DE1A";
       fsType = "vfat";
       options = [ "fmask=0022" "dmask=0022" ];
     };
@@ -37,6 +39,6 @@
   # networking.interfaces.wlp2s0.useDHCP = lib.mkDefault true;
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-  hardware.enableRedistributableFirmware =  true;
+  hardware.enableRedistributableFirmware = true;
   hardware.cpu.amd.updateMicrocode = true;
 }

@@ -64,6 +64,7 @@ in
   home.file.".vimrc".source = ./vimrc;
   # run-or-raise gnome extension
   home.file.".config/run-or-raise/shortcuts.conf".text = ''
+    # managed by home-manager
     # The shortcuts may be defined in two ways:
     #
     # 1. Run-or-raise form: shortcut,launch-command,[wm_class],[title]
@@ -98,9 +99,10 @@ in
     # =============
 
     # open a konsole window
-    <Super><Ctrl><Alt><Shift>D,${pkgs.wout-scripts}/bin/new-konsole
+    # <Super><Ctrl><Alt><Shift>D,${pkgs.wout-scripts}/bin/new-konsole
     # open devdocs.io in a new chrome app window (should only open one but can't find how to do that)
-    <Super><Ctrl><Alt>D,${pkgs.google-chrome}/bin/google-chrome-stable --app=https://devdocs.io
+    <Super><Ctrl><Alt><Shift>D,${pkgs.google-chrome}/bin/google-chrome-stable --profile-directory=Default --app-id=ahiigpfcghkbjfcibpojancebdfjmoop,chrome-ahiigpfcghkbjfcibpojancebdfjmoop-Default,DevDocs
+    # --app=https://devdocs.io
 
     # Blank lines are allowed. Line starting with "#" means a comment.
     # Now delete these shortcuts and put here yours.

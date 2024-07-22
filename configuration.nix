@@ -1,22 +1,7 @@
 { config, pkgs, options, lib, ... }:
-let
-  goConf = pkgs.runCommand "goConf" { }
-    ''
-      mkdir -p $out
-      cp ${pkgs.netdata}/lib/netdata/conf.d/go.d.conf $out
-      cp ${pkgs.netdata}/lib/netdata/conf.d/go.d/* $out
-      chmod +w $out/*
-      ${pkgs.yq-go}/bin/yq -Pi e '.modules.mysql = false' $out/go.d.conf
-      ${pkgs.yq-go}/bin/yq -Pi e '.jobs += {"name": "agent", "url": "http://127.0.0.1:3001/metrics"}' $out/prometheus.conf
-    '';
-in
 {
   # Don't kill BT on rebuild switch
   systemd.services.bluetooth.unitConfig.X-RestartIfChanged = false;
-
-  systemd.services.netdata.serviceConfig.Type = "forking";
-  systemd.services.netdata.serviceConfig.ExecStart = lib.mkForce
-    "${pkgs.netdata}/bin/netdata -P /run/netdata/netdata.pid -d -c /etc/netdata/netdata.conf";
 
   imports = [
     # Customisations over default nixpkgs tree
@@ -57,20 +42,6 @@ in
 
   services.sshguard.enable = true;
   services.fwupd.enable = true;
-  services.netdata.enable = true;
-  services.netdata.config = {
-    global = {
-      "debug log" = "syslog";
-      "access log" = "syslog";
-      "error log" = "syslog";
-      "memory mode" = "dbengine";
-      "page cache size" = 16;
-      "dbengine multihost disk space" = 512;
-    };
-    "plugin:go.d" = {
-      "command options" = "-c ${goConf}";
-    };
-  };
   services.nginx.virtualHosts.localhost = {
     # Make sure we don't accidentally serve wrong virtualhosts
     default = lib.mkForce true;
@@ -129,7 +100,7 @@ in
 
   # Enable the OpenSSH daemon.
   services.openssh.enable = true;
-  security.pam.enableSSHAgentAuth = true;
+  security.pam.sshAgentAuth.enable = true;
 
   # Open ports in the firewall.
   # networking.firewall.allowedTCPPorts = [ ... ];
@@ -142,7 +113,7 @@ in
   ];
   # mDNS support for Chromecast and Canon printing
   services.avahi.enable = true;
-  services.avahi.nssmdns = true;
+  services.avahi.nssmdns4 = true;
 
   # support SSDP https://serverfault.com/a/911286/9166
   networking.firewall.extraPackages = [ pkgs.ipset ];
@@ -195,7 +166,7 @@ in
   };
 
   # Android
-  # programs.adb.enable = true;
+  programs.adb.enable = true;
 
   # enable third-party binaries
   programs.nix-ld.enable = true;

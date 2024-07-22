@@ -9,26 +9,37 @@ let t = specialArgs.flakeInputs.nixos-hardware.nixosModules; in
 {
   imports = [
     t.lenovo-yoga-7-14ARH7.amdgpu
-    # # fixes white flashing
+    #t.lenovo-yoga-7-14ARH7.nvidia
+    # fixes white flashing
     t.common-cpu-amd-raphael-igpu
-    # # PRIME
-    t.common-gpu-nvidia
+    # PRIME
+    # t.common-gpu-nvidia
     # hi res screen
     t.common-hidpi
+    # enable pstate
+    t.common-cpu-amd-pstate
   ];
 
-  # maybe not needed, for brightness sensor?
+  hardware.enableRedistributableFirmware = true;
+  hardware.cpu.amd.updateMicrocode = true;
+  # active AMD pstate management
+  services.auto-epp.enable = true;
+
+  # brightness sensor
   hardware.sensor.iio.enable = true;
 
-  hardware.nvidia = {
-    modesetting.enable = lib.mkDefault true;
-    powerManagement.enable = lib.mkDefault true;
+  #hardware.nvidia = {
+    #   modesetting.enable = lib.mkDefault true;
+    #powerManagement.enable = lib.mkDefault true;
 
-    prime = {
-      amdgpuBusId = lib.mkDefault "PCI:64:0:0";
-      nvidiaBusId = "PCI:1:0:0";
-    };
-  };
+    #   prime = {
+    #     offload.enable = lib.mkDefault true;
+    #     amdgpuBusId = lib.mkDefault "PCI:64:0:0";
+    #     nvidiaBusId = "PCI:1:0:0";
+    #   };
+  #};
 
   # console.font = "${pkgs.terminus_font}/share/consolefonts/ter-u28n.psf.gz";
+
+  services.ollama.acceleration = "cuda";
 }
