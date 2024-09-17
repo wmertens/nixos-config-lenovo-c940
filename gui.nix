@@ -10,8 +10,8 @@
   environment.sessionVariables.NIXOS_OZONE_WL = "1";
 
   environment.systemPackages = with pkgs; [
-    gnome.gnome-tweaks
-    gnome.dconf-editor
+    gnome-tweaks
+    dconf-editor
     # appimage-run
     # Wayland
     wl-clipboard
@@ -42,6 +42,8 @@
   # Enable synthetic input
   hardware.uinput.enable = true;
   i18n.inputMethod.enabled = "ibus";
+  # i18n.inputMethod.enable = "ibus";
+  # i18n.inputMethod.type = "ibus";
   # i18n.inputMethod.ibus.engines = with pkgs.ibus-engines; [
   #   typing-booster
   #   uniemoji

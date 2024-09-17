@@ -12,6 +12,9 @@
   # Screen orientation
   hardware.sensor.iio.enable = true;
 
+  # Auto tune performance
+  powerManagement.powertop.enable = true;
+
   # Use the power daemon thingie in Gnome
   # services.tlp.enable = false;
   # services.tlp.settings = {
@@ -29,5 +32,5 @@
   #   # CPU_MAX_PERF_ON_BAT = 60;
   # };
 
-  environment.systemPackages = with pkgs; [ pciutils usbutils iw lm_sensors ];
+  environment.systemPackages = with pkgs; [ pciutils usbutils iw lm_sensors powertop ];
 }
