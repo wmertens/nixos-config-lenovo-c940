@@ -27,7 +27,8 @@ in
 
   #  programs.go.enable = true;
 
-  services.keybase.enable = true;
+  # Uses quite a lot of cpu for an idle service
+  # services.keybase.enable = true;
   services.kbfs.enable = true;
 
   # eID
@@ -122,8 +123,9 @@ in
 
     # fun
     fortune
-    cowsay
-    lolcat
+    neo-cowsay
+    # if you want rainbow fortunes
+    #lolcat
 
     bup
     par2cmdline # for bup
@@ -165,7 +167,6 @@ in
     highlight
     jq
     less
-    lolcat
     lsof
     mtr
     bfr
@@ -268,26 +269,24 @@ in
     initExtra = ''
       # entertain me while we load
       if type -p fortune >/dev/null; then
-        #    f=$(fortune -c -s computers cookie debian definitions drugs education fortunes goedel humorists law linux literature love magic medicine miscellaneous news off/art off/astrology off/atheism off/black-humor off/cookie off/debian off/definitions off/drugs off/fortunes off/linux off/miscellaneous off/politics off/privates off/racism off/religion off/riddles off/sex off/songs-poems off/vulgarity paradoxum people pets platitudes politics riddles science songs-poems startrek translate-me wisdom work | sed 's/(\/nix\/.*\//(/'
-          f=$(fortune -c -s computers cookie debian definitions drugs education fortunes goedel humorists law linux literature love magic medicine miscellaneous news paradoxum people pets platitudes politics riddles science songs-poems startrek translate-me wisdom work | sed 's/(\/nix\/.*\//(/')
+        f=$(fortune -c -s computers cookie debian definitions drugs education fortunes goedel humorists law linux literature love magic medicine miscellaneous news off/art off/astrology off/atheism off/black-humor off/cookie off/debian off/definitions off/drugs off/fortunes off/linux off/miscellaneous off/politics off/privates off/racism off/religion off/riddles off/sex off/songs-poems off/vulgarity paradoxum people pets platitudes politics riddles science songs-poems startrek translate-me wisdom work | sed -e 's/(\/nix\/.*\//(/' -e 's/^%//')
         if type -p cowsay >/dev/null; then
-          function qotd() {
-            # read -a cows < <(cowsay -l | sed 1d)
-            local cows=(beavis.zen blowfish bong bud-frogs bunny cower daemon default dragon dragon-and-cow elephant eyes flaming-sheep ghostbusters hellokitty kitty koala llama luke-koala meow milk moofasa moose mutilated ren satanic sheep skeleton small stegosaurus stimpy supermilker surgery three-eyes turkey turtle tux udder vader vader-koala www)
+          # # original cowsay doesn't have --random
+          # function qotd() {
+          #   # read -a cows < <(cowsay -l | sed 1d)
+          #   local cows=(beavis.zen blowfish bong bud-frogs bunny cower daemon default dragon dragon-and-cow elephant eyes flaming-sheep ghostbusters hellokitty kitty koala llama luke-koala meow milk moofasa moose mutilated ren satanic sheep skeleton small stegosaurus stimpy supermilker surgery three-eyes turkey turtle tux udder vader vader-koala www)
+          #   f=$(cowsay -f ''${cows[$(($RANDOM*(''${#cows[*]})/32768))]} <<<"$f")
+          # }
+          # qotd
+          f=$(cowsay -W 80 --random <<<"$f")
+        fi
 
-            f=$(cowsay -f ''${cows[$(($RANDOM*(''${#cows[*]})/32768))]} <<<"$f")
-
-            if type -p lolcat >/dev/null; then
-              lolcat -p 0.5 <<<"$f"
-            else
-              echo "$f"
-            fi
-          }
-          qotd
+        if type -p lolcat >/dev/null; then
+          lolcat -p 0.5 <<<"$f"
         else
           echo "$f"
         fi
-        unset cows f
+        unset f
       fi
       
       # shortcuts

@@ -68,6 +68,7 @@
         wout-scripts = final.callPackage ./home/wout-scripts.nix { };
         google-chrome = prev.google-chrome.override { commandLineArgs = "--enable-features=TouchpadOverscrollHistoryNavigation"; };
         home-manager = hm;
+        fortune = prev.fortune.override { withOffensive = true; };
       });
 
       # NixOS configuration
