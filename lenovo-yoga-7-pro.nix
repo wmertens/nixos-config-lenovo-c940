@@ -31,17 +31,17 @@ let t = specialArgs.flakeInputs.nixos-hardware.nixosModules; in
   # brightness sensor
   hardware.sensor.iio.enable = true;
 
-  hardware.nvidia = {
-    open = true;
-    modesetting.enable = lib.mkDefault true;
-    powerManagement.enable = lib.mkDefault true;
+  #hardware.nvidia = {
+    #open = true;
+    #modesetting.enable = lib.mkDefault true;
+    #powerManagement.enable = lib.mkDefault true;
 
-    prime = {
-      offload.enable = lib.mkDefault true;
-      amdgpuBusId = lib.mkDefault "PCI:64:0:0";
-      nvidiaBusId = "PCI:1:0:0";
-    };
-  };
+    #prime = {
+      #offload.enable = lib.mkForce false;
+      #amdgpuBusId = lib.mkDefault "PCI:64:0:0";
+      #nvidiaBusId = "PCI:1:0:0";
+    #};
+  #};
 
   # console.font = "${pkgs.terminus_font}/share/consolefonts/ter-u28n.psf.gz";
 
