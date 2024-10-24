@@ -14,6 +14,7 @@ in
       "slack"
       "vscode-extension-ms-vsliveshare-vsliveshare"
       "vscode"
+      "cursor"
     ];
   };
 
@@ -102,7 +103,8 @@ in
     # <Super>KP_2,chromium-browser --app=https://mail.google.com/mail/u/0/#inbox
 
     <Super><Ctrl><Alt><Shift>Q,sqlitebrowser,,SQLite
-    <Super><Ctrl><Alt><Shift>K,code,code-url-handler,,
+    #<Super><Ctrl><Alt><Shift>K,code,code-url-handler,,
+    <Super><Ctrl><Alt><Shift>K,cursor,cursor-url-handler,,
     <Super><Ctrl><Alt><Shift>A,gnome-system-monitor,,
     <Super><Ctrl><Alt><Shift>T,konsole,org.kde.konsole,
 
@@ -163,6 +165,7 @@ in
     vorta
     # for qdbus
     #libsForQt5.full
+    code-cursor
 
     # Vitals extension
     lm_sensors
