@@ -1,0 +1,299 @@
+#!/bin/sh
+# If you are under ULTRIX use /bin/sh5 instead of /bin/sh (too buggy)
+################################################################################
+# @(#)gus,v 2.8 11/12/1994 (c) XaBier Vazquez Gallardo <siavagaj@si.ehu.es>
+# You'll need this external programs:
+# gzip, tar, sed, awk, unarj, lha, zoo, unzip, test, pgp, uncompress, echo and
+# uudecode. If you don't have all those programs maybe gus won't work.
+#
+# Program Description:
+# Decompress all this kind of files and combinations of them:
+# .arc .zip .arj .zoo .lzh .lha .lzh .Z .z .tar .tgz .shar .pgp 
+# .[1-8ln] .man .uu and .uue
+# * Man type files will be displayed
+# 
+# Added automatic dir creation, Wout.Mertens@gmail.com 2006
+################################################################################
+
+PATH=/opt/local/bin:$PATH
+
+do_help ()
+{
+ echo
+ echo This script helps you decompressing Unix archives compressed with compress,
+ echo gzip, tar, shar, lha, arj, zip, zoo, pgp, arc and uuencode. It also formats
+ echo manual pages. Now you don\'t need to type all those long lines to decompress
+ echo a tar + gz archive, only type \'gus file\' and it will do all the work.
+ echo "GUS knows this extensions and combinations of them (tar + gzip, etc):"
+ echo ".Z .z .zip .arj .zoo .arc .lha .lzh .pgp .tar .tgz .shar .[1-8ln] .man .uu .uue"
+ echo
+ echo "USAGE: '`basename $0` [-h | [[-r | -rf] f1 [f2] ...]' will decompress f1, f2, ..."
+ echo "       '-h'  show you this help"
+ echo "       '-r'  remove with prompt compressed file after decompress it" 
+ echo "       '-rf' remove without prompt compressed file after decompress it"
+ echo "ie:    '`basename $0` file1 -rf file2 file3' will do this:"
+ echo "        decompress file[123] and remove file[23] without any ask"
+ echo "       *WARNING* Be careful with option '-rf'"
+ exit 0
+}
+
+finddirname ()
+{
+ dirname="$1"
+ i=0
+ while [ -f "$dirname" ] || [ -d "$dirname" ]; do
+	 i=`expr $i + 1`
+	 dirname="$1.$i"
+ done
+}
+ 
+findfile ()
+{
+ sifs=$IFS
+ IFS=:
+ fileresult=""
+ for dir in $PATH; do
+   test -z "$dir" && dir=.
+   if [ -x $dir/$1 ] ; then
+      fileresult="$dir/$1"
+      break
+   fi
+ done
+ IFS=$sifs
+ test -z "$fileresult" && echo ERROR: Can\'t find $1 program
+}
+
+changevars ()
+{
+ command=$command$1
+ message=$message$2
+ create=$3
+ exit_f=$4
+ do_cat=$5
+}
+
+makeask ()
+{
+ exit_ask=0
+ while [ $exit_ask = 0 ] ; do
+   echo "Do you want to remove '$1' [Y/N]? \c"
+   read yesno
+   case $yesno in
+     y* | Y*)
+       removeit=1
+       exit_ask=1
+     ;;
+     n* | N*)
+       removeit=0
+       exit_ask=1
+     ;;
+   esac
+ done
+}
+
+check_params ()
+{
+ for i in "$@"
+ do
+   case "$i" in
+     -rf | -r) 
+       total_files=`expr $total_files - 1`
+     ;;
+     -h)
+       do_help
+     ;;
+   esac
+ done
+}
+
+echo GUS V:2.8 General Unpack Shell for Un*x \(c\) XaBi \<siavagaj@si.ehu.es\>
+
+total_files=$#
+if [ $total_files = 0 ] ; then
+   echo ERROR: not enough params
+   echo "TRY  : `basename $0` -h"
+   exit 1
+fi
+
+check_params "$@"
+
+if [ $total_files = 1 ] ; then
+   echo [ $total_files ] file to process ... 
+else
+   echo [ $total_files ] files to process ...
+fi
+
+removefile=0
+promptbefore=0
+
+for file_tmp in "$@"
+do
+  case "$file_tmp" in
+       -rf)
+          removefile=1
+          promptbefore=0
+          continue
+        ;;
+       -r)
+          removefile=1
+          promptbefore=1
+          continue
+        ;;
+	/*)
+	  :
+	;;
+	*)
+	  file_tmp="`pwd`/$file_tmp"
+	;;
+  esac
+  file=`basename "$file_tmp"`
+  finddirname "$file.deleteme_gus"
+  if mkdir "$dirname"; then
+	  cd "$dirname"
+  else
+	  echo "ERROR: Can't create temporary directory $dirname"
+	  continue
+  fi
+  if test -f "$file_tmp" ; then
+     exit_f=0
+     command=""
+     message=""
+     do_cat=1
+     create=1
+     while [ $exit_f -eq 0 ] ; do
+       old_file="$file"
+       extension=`echo "$file" | sed -e 's/.*\.//'`
+       if [ "$extension" = "$file" ] ; then
+          extension=""
+       else
+          file=`echo "$file" | sed -e s/\.$extension$//`
+       fi
+       case "$extension" in
+         tar)
+           changevars " | tar xvfo -" " tar +" 0 1 1
+         ;;
+         Z)
+           changevars " | uncompress" " compress +" 1 0 1
+         ;;
+         z | gz)
+           changevars " | gzip -d" " gzip +" 1 0 1
+         ;;
+         bz2)
+           changevars " | bzip2 -d" "bzip2 +" 1 0 1
+         ;;
+         tbz2)
+           changevars " | bzip2 -d | tar xvfo -" " tar + gzip +" 0 1 1
+         ;;
+         tgz)
+           changevars " | gzip -d | tar xvfo -" " tar + gzip +" 0 1 1
+         ;;
+         uu | uue)
+           changevars " | uudecode" " uuencode +" 0 1 1
+         ;;
+         shar)
+           changevars " | sh" " shar +" 0 1 1
+         ;;
+         zip|apk|jar|epub|apk)
+           if [ -z "$command" ] ; then
+              findfile unzip
+              test ! -z "$fileresult" && changevars $fileresult " zip +" 0 1 0
+           else
+              echo ERROR: Can\'t pipe to unzip. File partialy decompressed.
+           fi
+           exit_f=1
+         ;;
+         arj)
+           if [ -z "$command" ] ; then
+              findfile unarj
+              test ! -z "$fileresult" && changevars $fileresult" x" " arj +" 0 1 0
+           else
+              echo ERROR: Can\'t pipe to unarj. File partialy decompressed.
+           fi
+           exit_f=1
+         ;;
+         arc)
+           if [ -z "$command" ] ; then
+              findfile arc
+              test ! -z "$fileresult" && changevars $fileresult" x" " arc +" 0 1 0
+           else
+              echo ERROR: Can\'t pipe to arc. File partialy decompressed.
+           fi
+           exit_f=1
+         ;;
+         zoo)
+           if [ -z "$command" ] ; then
+              findfile zoo
+              test ! -z "$fileresult" && changevars $fileresult" x" " zoo +" 0 1 0
+           else
+              echo ERROR: Can\'t pipe to zoo. File partialy decompressed.
+           fi
+           exit_f=1
+         ;;
+         lzh | lha | lz)
+           findfile lha
+           test ! -z "$fileresult" && changevars " | "$fileresult" x -" " lha +" 0 1 1
+           exit_f=1
+         ;;
+         pgp)
+           findfile pgp
+           if [ ! -z "$fileresult" ] ; then
+              changevars " | "$fileresult " pgp +" 0 0 1
+           else
+              exit_f=1
+           fi
+         ;;
+         [1-8nl] | man)
+           test -z "$command" && changevars " | nroff -man | more" " man +" 0 1 1
+           exit_f=1
+         ;;
+         *)
+           exit_f=1
+         ;;
+       esac
+     done
+     bestdirname="$file"
+     test $create -eq 1 && command=$command" > "$old_file
+     if [ -z "$message" ] ; then 
+         echo ERROR: Don\'t know how to handle [ $file_tmp ]
+     else
+         message=`echo $message | sed -e 's/ +$//'`
+         echo "File [ `basename "$file_tmp"` ]"
+         echo "Type [ $message ]"
+         if [ $do_cat = 1 ] ; then
+            command="cat \"$file_tmp\" "$command
+         else
+            command="$command \"$file_tmp\""
+         fi
+         eval $command && {
+           if [ $removefile = 1 ] ; then
+              if [ $promptbefore = 1 ] ; then
+                 makeask $file_tmp
+                 test $removeit -eq 1 && rm -f $file_tmp
+              else
+                 rm -f $file_tmp
+              fi
+           fi
+         }
+     fi
+     files=`echo *`
+     if [ "$files" = "*" ]; then
+	     cd ..
+	     rmdir "$dirname"
+     else
+	     olddirname="$dirname"
+	     if [ -d "$files" ] || [ -f "$files" ]; then
+		     cd ..
+		     finddirname "$files"
+		     mv "$olddirname/$files" "$dirname"
+		     rmdir "$olddirname"
+	     else
+		     cd ..
+		     finddirname "$bestdirname"
+		     mv "$olddirname" "$dirname"
+	     fi
+	     echo "Location [ $dirname ]"
+     fi
+  else
+     echo ERROR: [ $file_tmp ] Can\'t process it! Exists????
+  fi
+done

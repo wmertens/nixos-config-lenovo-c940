@@ -6,7 +6,7 @@ let
     /System/Library/Frameworks/ScreenSaver.framework/Resources/ScreenSaverEngine.app/Contents/MacOS/ScreenSaverEngine -background
   '';
 
-  # convert ts
+  # convert timestamp to date
   ts = writeScript "ts" ''
     #!/usr/bin/env node
     const ts = +process.argv[2]
@@ -52,58 +52,6 @@ let
       | ${pkgs.gawk}/bin/awk '{s=$1/1024/1024;$1="";printf("%6.1fMB  %s\n",s,$0)}'
   '';
 
-  slack-notify = writeScript "slack" ''
-    #!${pkgs.bash}
-
-    SLACK_URL=https://hooks.slack.com/services/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
-
-    function post_to_slack () {
-      if [ $# -lt 1 ]; then
-        exec 2>&1
-        echo "Usage:"
-        echo
-        echo "$0 \"message\" [INFO|WARN|ERROR] [#channel|@who]"
-        echo
-        echo "the env variable SLACK_CHANNEL can also be used"
-        exit 1
-      fi
-      local channel=$SLACK_CHANNEL
-      local icon
-
-      # format message as a code block ```msg```
-      local message="\`\`\`$1\`\`\`"
-
-      case "$2" in
-        ""|INFO)
-          icon=
-          ;;
-        WARN)
-          icon=':warning: '
-          ;;
-        ERROR)
-          icon=':bangbang: <@channel> '
-          ;;
-        *)
-          exec 2>&1
-          echo "Unknown priority $2, use INFO, WARN, ERROR"
-          exit 1
-          ;;
-      esac
-      
-      if [ -n "$3" ]; then
-        channel="$3"
-      fi
-      
-      if [ -n "$channel" ]; then
-        channel="\"channel\": \"$channel\","
-      fi
-
-      curl -X POST --data "payload={$channel\"text\": \"$icon$who$message\",\"attachments\":[{\"fallback\":\"fromwhere\",\"fields\":[{\"title\":\"who\",\"value\":\"`whoami`\",\"short\":true},{\"title\":\"who\",\"value\":\"`hostname`\",\"short\":true}]}]}" $SLACK_URL
-    }
-
-    post_to_slack "$@"
-  '';
-
   newKonsole = writeScript "newKonsole" ''
     #!/bin/sh
     t=`pidof -s konsole`
@@ -114,6 +62,9 @@ let
     	exec konsole
     fi
   '';
+  scriptCopy = builtins.concatStringsSep ";" (builtins.map
+    (name: "cp ${writeScript name (builtins.readFile (./scripts + "/${name}"))} ${name}")
+    (builtins.attrNames (builtins.readDir ./scripts)));
 
 in
 stdenv.mkDerivation rec {
@@ -127,20 +78,18 @@ stdenv.mkDerivation rec {
   # cp ${ssdesk} ssdesk
 
   # cp ${cdp-listen} cdp-listen
-  # cp ${slack-notify} slack-notify
-  buildInputs = with pkgs; [ bashInteractive perl ];
+  buildInputs = (with pkgs; [ bashInteractive perl ]);
   installPhase = ''
     mkdir -p $out/bin
     cd $out/bin
     cp ${fl} find-large-files
     cp ${ts} ts
     cp ${newKonsole} new-konsole
-    cp ${./tracefile.pl} tracefile
-    chmod +x tracefile
+    ${scriptCopy}
   '';
 
   meta = with lib; {
-    description = "My scripts";
+    description = "Wout's scripts";
     maintainers = with maintainers; [ wmertens ];
     platforms = with platforms; linux ++ darwin;
     license = licenses.mit;

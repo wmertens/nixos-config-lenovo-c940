@@ -1,0 +1,55 @@
+#!/bin/sh
+#
+# Persistent ssh: Automatically create persistent ssh connections using OpenSSH >4.0
+#
+# Requires sh, ssh and sed.
+#
+# Wout.Mertens@gmail.com
+
+# Please implement %u in ControlPath ;-)
+[ -z "$USER" ] && USER=`whoami`
+MASTERSOCKDIR="/tmp/pssh-$USER"
+MASTERSOCK="$MASTERSOCKDIR/%r-%h-%p"
+SSH="${PSSH_SSH:-ssh}"
+
+# Check if master is running
+if output=`"$SSH" -o ControlPath="$MASTERSOCK" -O check "$@" 2>&1`; then 
+	# Master is running
+	:
+else
+	ERRCODE=$?
+	die() {
+		echo "$0: $*" >&2
+		exit $ERRCODE
+	}
+	case "$output" in
+	Control*)
+		# Master not running, SSH supports master
+
+		# Figure out socket filename
+		socket=`echo "$output" | sed -n -e 's/[^(]*(\([^)]*\)).*/\1/p' -e '1q'`
+
+		# Clean old socket if valid filename
+		# I wish SSH did this instead
+		case "$socket" in
+		"$MASTERSOCKDIR"/*) rm -f "$socket" >/dev/null 2>&1 ;;
+		esac
+
+		# Start persistent master connection
+		if [ ! -d "$MASTERSOCKDIR" ]; then
+			mkdir "$MASTERSOCKDIR" || die "Can't create $MASTERSOCKDIR"
+			chmod 700 "$MASTERSOCKDIR" || die "Can't privatize $MASTERSOCKDIR"
+		fi
+		"$SSH" -o ControlPath="$MASTERSOCK" -o ServerAliveInterval=45 -MNf "$@"
+		if [ $? -ne 0 ]; then
+			die "Can't create master SSH connection"
+		fi
+		;;
+	*)
+		# SSH doesn't support master or bad command line parameters
+		echo "$output" >&2
+		die "SSH doesn't support persistent connections or bad parameters"
+		;;
+	esac
+fi
+exec "$SSH" -o ControlPath="$MASTERSOCK" -o ControlMaster=no "$@"

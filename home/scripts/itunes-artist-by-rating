@@ -1,0 +1,30 @@
+#!/bin/sh
+T=`getconf DARWIN_USER_TEMP_DIR`ratings.html
+
+perl -nle '@a=split /[<>]/;
+if ($a[1] eq "dict") {
+	$artist="";
+}
+
+$f=$a[2];$v=$a[6];
+
+if($f eq "Artist"){
+	$artist=$v;
+	$total{$artist}++;
+}elsif($f eq "Rating" && $v>0 && $artist){
+	$a{$artist}=$artist;
+	$rate{$artist}+=$v;
+	$count{$artist}++;
+}
+END{
+	print qq(<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/><style type="text/css">div{background:lightgreen;text-align:center;border:thin solid green}.h{font-style:oblique;font-size:120%}</style><body><table><tr class="h"><td width="130px">Rating<td>Rated Count<td>Artist);
+	for $i (keys %rate){
+		$avg{$i}=$rate{$i}/$count{$i};
+		$rated{$i}=$count{$i}/$total{$i}*100
+	}
+	for $i (sort {int($avg{$b}/20-0.001)<=>int($avg{$a}/20-0.001)||int($rated{$b}/20-0.001)<=>int($rated{$a}/20-0.001)||$count{$b}<=>$count{$a}||$a cmp $b} keys %avg){
+		printf "<tr><td><div style=\"width:%dpx\">%1.1f</div><td>%d (%d%%)<td>%s\n", $avg{$i},$avg{$i}/20,$count{$i},$rated{$i},$a{$i}
+	};
+	print "</table>"
+}' ~/Music/iTunes/iTunes\ Music\ Library.xml > "$T"
+open "$T"

@@ -1,0 +1,9 @@
+#!/bin/bash
+sshDest="$1"
+id=`id -u wmertens`
+path=/Volumes/`basename "$sshDest"`
+if [ -e "$path" ]; then
+	path="$path-$$"
+fi
+mkdir "$path" && sshfs "$sshDest" "$path" -C -o reconnect -o workaround=nodelaysrv -o uid="$id" -o cache_stat_timeout=600 && sleep 3 && open "$path"
+if [ $? -ne 0 ]; then rmdir "$path"; fi

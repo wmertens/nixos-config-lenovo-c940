@@ -1,0 +1,8 @@
+#!/bin/sh
+t=`pidof -s konsole`
+
+if [ -n "$t" ]; then
+	exec qdbus org.kde.konsole-$t /konsole/MainWindow_1 org.kde.KMainWindow.activateAction new-window
+else
+	exec konsole
+fi

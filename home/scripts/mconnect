@@ -1,0 +1,40 @@
+#!/bin/bash
+#
+# mconnect makes it easier to talk to an SMTP server
+#
+# Usage: mconnect [server]
+#
+# if server isn't specified, it will connect to localhost.
+#
+# Example: echo expn username | mconnect
+mconnect () {
+	# Open a TCP connection to the SMTP server on file descriptor 3
+	if exec 3> "/dev/tcp/${1:-localhost}/25"; then
+		local loop=1;
+		while [ $loop -eq 1 ]; do
+			# Read the answer from the server
+			local answering=1;
+			while [ $answering -eq 1 ]; do
+				answering=0;
+				if read -r i 0<&3; then
+					echo "$i";
+					# If there's a - there's more coming
+					case "$i" in 
+						[0-9][0-9][0-9]-*)
+						answering=1
+						;;
+					esac;
+				fi;
+			done;
+			# Get user input
+			if read -r a; then
+				echo "$a" 1>&3;
+			else
+				loop=0;
+			fi;
+		done;
+		exec 3>&-;
+	fi
+}
+
+mconnect "$1"

@@ -1,0 +1,18 @@
+#!/usr/bin/perl
+sub decode{
+	return chr(hex($_[0]) ^ 0b10101010)
+}
+sub encode{
+	return sprintf "%%%02x", (ord($_[0]) ^ 0b10101010)
+}
+if ($ARGV[0] eq '-e') {
+	while(<STDIN>) {
+		s/(.)/encode($1)/eg;
+		print;
+	}
+} else {
+	while(<STDIN>) {
+		s/%(..)/decode($1)/eg;
+		print;
+	}
+}

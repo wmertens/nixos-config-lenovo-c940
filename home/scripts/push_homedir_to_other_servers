@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+usage() {
+	echo "This syncs the needed files to your accounts on all the servers.
+Options:
+	-s server	Your default server
+	-h hostname	Process host hostname (and only hostname)
+	-S sshpath	path to ssh ${sshpath:+($sshpath)}
+	-R rsync	remote rsync path ${rsyncpath:+($rsyncpath)}
+	-n		Don't do anything
+	-q		Quiet
+	-d		Delete other files" >&2
+	exit 1
+}
+
+server=
+list=$(ngexpand prodfs 2>/dev/null)
+delete=
+verbose=true
+simulate=
+sshpath=/usr/bin/ssh
+rsyncpath=
+while getopts h:s:S:R:nvdq opt; do
+	case $opt in
+	h) list=$OPTARG; server=foo ;;
+	s) server=$OPTARG ; case "$list" in *$server*) :;; *) echo "$server is not in $list"; exit 1;; esac ;;
+	S) sshpath=$OPTARG ;;
+	R) rsyncpath=$OPTARG ;;
+	q) verbose= ;;
+	d) delete=true ;;
+	n) simulate=true; verbose=true ;;
+	*) usage ;;
+	esac
+done
+
+[ -z "$server" ] && usage
+
+opts="-rlptzR --rsh=$sshpath ${rsyncpath:+--rsync-path=$rsyncpath}"
+[ -n "$verbose" ] && opts="$opts -v"
+[ -n "$simulate" ] && opts="$opts -n"
+[ -n "$delete" ] && opts="$opts --delete-after"
+
+cd ~
+for file in \
+    .iterm2_shell_integration.bash \
+    .alias{,.common,.work} \
+    .bash{,_login,rc,_profile} \
+    .exrc .inputrc .login .logout .screenrc \
+    .ssh/authorized_keys{,2} \
+    .vimrc .vim bin/* .nixpkgs .config/nixpkgs; do
+    [[ -e "$file" && ! "$file" =~ node_modules && ! "$file" =~ Attic ]] && files+=("$file")
+done
+
+for i in $list; do
+	[ "$i" == "$server" ] && continue
+	[ -n "$verbose" ] && echo "=== $i ==="
+	# shellcheck disable=SC2086
+	rsync $opts "${files[@]}" "$i:"
+done

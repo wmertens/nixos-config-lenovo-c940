@@ -1,0 +1,33 @@
+#!/bin/sh
+LIB="$1"
+if [ -z "$LIB" ]; then
+	echo "Usage: $0 [path to iTunes Music Library.xml]"
+	LIB=~/Music/iTunes/iTunes\ Music\ Library.xml
+	echo "I'll assume you want me to work on $LIB now."
+fi
+loc=`perl -MURI::Escape -ne 'if(m/Music Folder.*file:\/\/localhost([^<]*)/){$t=$1;$t=~s/\/$//;print uri_unescape($t)."\n";exit 0;}' "$LIB"`
+if [ -z "$loc" ]; then
+	echo "Are you sure you gave me the path to the xml file?"
+	echo "$LIB doesn't seem to be it..."
+	exit 1
+fi
+echo "Finding all files in $loc"
+# Tell sort to ignore encodings
+export LC_ALL=C
+# Find all files and sort them case-insensitively
+find "$loc" -type f | sort -fd > /tmp/fio.real.$$
+
+echo "Getting all files iTunes knows about"
+# Grab all file references from the xml file
+# URI::Escape doesn't handle &#digits; for some reason so we do it ourselves
+perl -MURI::Escape -ne 'if(m/Location.*file:\/\/localhost([^<]*)/){$t=uri_unescape($1);$t=~s/\&#(\d+)\;/chr($1)/eg;print $t."\n"}' "$LIB" | sort -fdu > /tmp/fio.itunes.$$
+
+echo
+echo "=== Files that are not in $loc ==="
+diff -i -U 0 /tmp/fio.itunes.$$ /tmp/fio.real.$$ | sed -e '1,2d' -e '/^[^-]/d' -e 's/^.//'
+echo
+echo "=== Files that are not in iTunes but should be (ignoring .DS_Store) ==="
+diff -i -U 0 /tmp/fio.itunes.$$ /tmp/fio.real.$$ | sed -e '1,2d' -e '/^[^+]/d' -e 's/^.//' | grep -vi DS_Store
+echo
+echo "=== Done ==="
+rm /tmp/fio.itunes.$$ /tmp/fio.real.$$
