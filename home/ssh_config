@@ -1,0 +1,17 @@
+TCPKeepAlive yes
+ServerAliveInterval 10
+ServerAliveCountMax 2
+StrictHostKeyChecking no
+#IdentityFile $HOME/.ssh/dsa
+AddKeysToAgent yes
+#UseKeychain yes
+
+NoHostAuthenticationForLocalhost yes
+ControlMaster auto
+ControlPath /tmp/ssh-wmertens-%r-%h:%p
+ControlPersist 300
+#ControlTimeout 5m
+
+Host * !localhost
+	Compression yes
+

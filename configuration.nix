@@ -128,7 +128,7 @@
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
 
-  networking.extraHosts = if builtins.pathExists ./extraHosts.conf then builtins.readFile ./extraHosts.conf else "";
+  networking.extraHosts = if builtins.pathExists ./secrets/extraHosts.conf then builtins.readFile ./secrets/extraHosts.conf else "";
 
   networking.networkmanager.plugins = [ pkgs.networkmanager-openconnect ];
   # services.osticket.enable = true;

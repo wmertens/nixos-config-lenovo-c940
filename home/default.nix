@@ -63,6 +63,17 @@ in
   home.file.".inputrc".source = ./inputrc;
   home.file.".screenrc".source = ./screenrc;
   home.file.".vimrc".source = ./vimrc;
+  home.file.".ssh/config" = {
+    target = ".ssh/config_source";
+    onChange = ''cp -f ~/.ssh/config_source ~/.ssh/config && chmod 400 ~/.ssh/config'';
+    text =
+      let
+        base = builtins.readFile ./ssh_config;
+        extra = if builtins.pathExists ./secrets/ssh_config then builtins.readFile ./secrets/ssh_config else "";
+      in
+      "# managed by home-manager\n${base}\n${extra}";
+  };
+
   # run-or-raise gnome extension
   home.file.".config/run-or-raise/shortcuts.conf".text = ''
     # managed by home-manager

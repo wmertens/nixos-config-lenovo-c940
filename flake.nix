@@ -27,7 +27,8 @@
           realpath /nix/var/nix/profiles/per-user/$USER/profile
         }
         prev=`getLink`
-        ${realHM}/bin/home-manager --flake ${flakePath} "$@"
+        # Use path: to include the secrets
+        ${realHM}/bin/home-manager --flake path:${flakePath} "$@"
         exitcode=$?
         if [ $exitcode -eq 0 ]; then
           next=`getLink`
@@ -50,6 +51,7 @@
           action=switch
         fi
         set -x
+        # Use path: to include the secrets
         sudo ${pkgs.nixos-rebuild}/bin/nixos-rebuild $action --flake path:${flakePath} "$@"
         exitcode=$?
         set +x
