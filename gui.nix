@@ -41,7 +41,8 @@
   services.libinput.enable = true;
   # Enable synthetic input
   hardware.uinput.enable = true;
-  i18n.inputMethod.enabled = "ibus";
+  i18n.inputMethod.enable = true;
+  i18n.inputMethod.type = "ibus";
   # i18n.inputMethod.enable = "ibus";
   # i18n.inputMethod.type = "ibus";
   # i18n.inputMethod.ibus.engines = with pkgs.ibus-engines; [
