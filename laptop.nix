@@ -2,8 +2,10 @@
 
 {
   services.swapspace.enable = true;
-  services.swapspace.cooldown = 50;
-  services.swapspace.maxSwapSize = 500000000;
+  services.swapspace.settings = {
+    cooldown = 50;
+    max_swapsize = "500M";
+  };
 
   hardware.bluetooth.enable = true;
 
