@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ pkgs, lib, specialArgs, ... }:
 
 let
   user = "wmertens";
@@ -106,7 +106,8 @@ in
     #<Super><Ctrl><Alt><Shift>K,code,code-url-handler,,
     <Super><Ctrl><Alt><Shift>K,cursor,cursor-url-handler,,
     <Super><Ctrl><Alt><Shift>A,gnome-system-monitor,,
-    <Super><Ctrl><Alt><Shift>T,konsole,org.kde.konsole,
+    # <Super><Ctrl><Alt><Shift>T,konsole,org.kde.konsole,
+    <Super><Ctrl><Alt><Shift>T,ghostty,com.mitchellh.ghostty,
 
     # =============
     # Run only form
@@ -166,6 +167,9 @@ in
     # for qdbus
     #libsForQt5.full
     code-cursor
+
+
+    specialArgs.flakeInputs.ghostty.packages.x86_64-linux.default
 
     # Vitals extension
     lm_sensors
