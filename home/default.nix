@@ -3,19 +3,17 @@
 let
   user = "wmertens";
   mainHost = "wmertens-nixos";
-in
-{
+in {
   nixpkgs.config = {
-    permittedInsecurePackages = [
-      "electron-11.5.0"
-    ];
-    allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
-      "google-chrome"
-      "slack"
-      "vscode-extension-ms-vsliveshare-vsliveshare"
-      "vscode"
-      "cursor"
-    ];
+    permittedInsecurePackages = [ "electron-11.5.0" ];
+    allowUnfreePredicate = pkg:
+      builtins.elem (lib.getName pkg) [
+        "google-chrome"
+        "slack"
+        "vscode-extension-ms-vsliveshare-vsliveshare"
+        "vscode"
+        "cursor"
+      ];
   };
 
   programs.nix-index.enable = true;
@@ -33,14 +31,14 @@ in
   services.kbfs.enable = true;
 
   # eID
-  xdg.configFile."chromium/NativeMessagingHosts/eu.webeid.json".source = "${pkgs.web-eid-app}/share/web-eid/eu.webeid.json";
-  xdg.configFile."google-chrome/NativeMessagingHosts/eu.webeid.json".source = "${pkgs.web-eid-app}/share/web-eid/eu.webeid.json";
+  xdg.configFile."chromium/NativeMessagingHosts/eu.webeid.json".source =
+    "${pkgs.web-eid-app}/share/web-eid/eu.webeid.json";
+  xdg.configFile."google-chrome/NativeMessagingHosts/eu.webeid.json".source =
+    "${pkgs.web-eid-app}/share/web-eid/eu.webeid.json";
 
   programs.vscode = {
     enable = true;
-    extensions = with pkgs.vscode-extensions; [
-      ms-vsliveshare.vsliveshare
-    ];
+    extensions = with pkgs.vscode-extensions; [ ms-vsliveshare.vsliveshare ];
   };
 
   programs.autojump.enable = true;
@@ -66,13 +64,18 @@ in
   home.file.".vimrc".source = ./vimrc;
   home.file.".ssh/config" = {
     target = ".ssh/config_source";
-    onChange = ''cp -f ~/.ssh/config_source ~/.ssh/config && chmod 400 ~/.ssh/config'';
-    text =
-      let
-        base = builtins.readFile ./ssh_config;
-        extra = if builtins.pathExists ./secrets/ssh_config then builtins.readFile ./secrets/ssh_config else "";
-      in
-      "# managed by home-manager\n${base}\n${extra}";
+    onChange =
+      "cp -f ~/.ssh/config_source ~/.ssh/config && chmod 400 ~/.ssh/config";
+    text = let
+      base = builtins.readFile ./ssh_config;
+      extra = if builtins.pathExists ./secrets/ssh_config then
+        builtins.readFile ./secrets/ssh_config
+      else
+        "";
+    in ''
+      # managed by home-manager
+      ${base}
+      ${extra}'';
   };
 
   # run-or-raise gnome extension
@@ -126,8 +129,8 @@ in
 
   home.sessionVariables = {
     #ibus
-    GTK_IM_MODULE = "ibus"; #Fix for Chrome
-    QT_IM_MODULE = "ibus"; #Not sure if this works or not, but whatever
+    GTK_IM_MODULE = "ibus"; # Fix for Chrome
+    QT_IM_MODULE = "ibus"; # Not sure if this works or not, but whatever
     XMODIFIERS = "@im=ibus";
   };
 
@@ -155,6 +158,7 @@ in
     sqlitebrowser
     wmctrl
     nixpkgs-fmt
+    nixfmt
     #teams
     #skype
     #zoom-us
@@ -167,7 +171,6 @@ in
     # for qdbus
     #libsForQt5.full
     code-cursor
-
 
     specialArgs.flakeInputs.ghostty.packages.x86_64-linux.default
 
@@ -187,7 +190,8 @@ in
     less
     lsof
     mtr
-    bfr
+    # broken build
+    #bfr
 
     nodejs_20
     corepack_20
@@ -216,16 +220,16 @@ in
     # Ember
     #watchman
 
+    # nixVersions.latest
+    # temp
+    specialArgs.flakeInputs.nix.packages.x86_64-linux.nix
   ];
 
   programs.bash = {
     enable = true;
     historySize = 1000000;
     historyFileSize = 1000000000;
-    historyControl = [
-      "ignoredups"
-      "ignorespace"
-    ];
+    historyControl = [ "ignoredups" "ignorespace" ];
     shellAliases = {
       which = "builtin type -p";
       where = "builtin type -ap";
@@ -306,7 +310,7 @@ in
         fi
         unset f
       fi
-      
+
       # shortcuts
       export SK="stratokit.io" SSK="sync.stratokit.io"
 

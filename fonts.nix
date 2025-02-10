@@ -60,6 +60,7 @@
       fira-code
       hack-font
       intel-one-mono
+      monaspace
     ];
   };
 

@@ -2,6 +2,7 @@
   description = "NixOS configuration with flakes";
 
   inputs = {
+    nix.url = "github:NixOS/nix";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     home-manager.url = "github:nix-community/home-manager";
@@ -23,7 +24,8 @@
     };
   };
 
-  outputs = { self, nixpkgs, nixos-hardware, home-manager, nix-alien, ... } @ flakeInputs:
+  outputs = { self, nixpkgs, nixos-hardware, home-manager, nix-alien, nix, ...
+    }@flakeInputs:
     let
       system = "x86_64-linux";
       username = "wmertens";
@@ -36,7 +38,8 @@
       # todo get the path programmatically. Needs to be the source, not the output path
       flakePath = "/home/wmertens/Projects/wout-config";
 
-      hm = let realHM = home-manager.packages.${system}.default; in pkgs.writeScriptBin "home-manager" ''
+      hm = let realHM = home-manager.packages.${system}.default;
+      in pkgs.writeScriptBin "home-manager" ''
         function getLink() {
           realpath /nix/var/nix/profiles/per-user/$USER/profile
         }
@@ -77,12 +80,14 @@
         fi
         exit $exitcode
       '';
-    in
-    {
+    in {
       # Our overlays
       overlays.default = (final: prev: {
         wout-scripts = final.callPackage ./home/wout-scripts.nix { };
-        google-chrome = prev.google-chrome.override { commandLineArgs = "--enable-features=TouchpadOverscrollHistoryNavigation"; };
+        google-chrome = prev.google-chrome.override {
+          commandLineArgs =
+            "--enable-features=TouchpadOverscrollHistoryNavigation";
+        };
         home-manager = hm;
         fortune = prev.fortune.override { withOffensive = true; };
       });
@@ -107,12 +112,7 @@
             nix.registry.nixpkgs.flake = self.inputs.nixpkgs;
           }
           # add the helper scripts to the path
-          {
-            environment.systemPackages = [
-              hm
-              nixos
-            ];
-          }
+          { environment.systemPackages = [ hm nixos ]; }
 
           ./configuration.nix
         ];
@@ -129,11 +129,13 @@
               inherit username homeDirectory;
               stateVersion = "22.05";
             };
-            nix.registry.N =
-              {
-                from = { type = "indirect"; id = "N"; };
-                flake = nixpkgs;
+            nix.registry.N = {
+              from = {
+                type = "indirect";
+                id = "N";
               };
+              flake = nixpkgs;
+            };
           }
 
           ./home

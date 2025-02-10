@@ -91,6 +91,11 @@
     cnijfilter2
 
     bcachefs-tools
+
+    # cuda
+    nvtop
+    radeontop
+    glances
   ];
 
   # EID
