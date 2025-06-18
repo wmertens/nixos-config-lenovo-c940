@@ -10,18 +10,9 @@
     nix-alien = {
       url = "github:thiagokokada/nix-alien";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
       inputs.flake-compat.follows = "flake-compat";
     };
     flake-compat.url = "github:edolstra/flake-compat";
-    flake-utils.url = "github:numtide/flake-utils";
-    ghostty = {
-      url = "github:ghostty-org/ghostty";
-      # Leave this be, it crashed a build
-      #inputs.nixpkgs-stable.follows = "nixpkgs";
-      inputs.nixpkgs-unstable.follows = "nixpkgs";
-      inputs.flake-compat.follows = "flake-compat";
-    };
   };
 
   outputs = { self, nixpkgs, nixos-hardware, home-manager, nix-alien, nix, ...
@@ -87,6 +78,9 @@
         google-chrome = prev.google-chrome.override {
           commandLineArgs =
             "--enable-features=TouchpadOverscrollHistoryNavigation";
+        };
+        cursor = prev.cursor.override {
+          commandLineArgs = "--ozone-platform-hint=wayland";
         };
         home-manager = hm;
         fortune = prev.fortune.override { withOffensive = true; };

@@ -12,7 +12,6 @@ autodetach on				# default: on
 startup_message off			# default: on
 
 # Uses nethack-style messages
-# nethack on				# default: off
 nethack on				# default: off
 
 # Change default scrollback value for new windows
@@ -99,7 +98,3 @@ caption always "%-w%{= BW}%50>%n %t%{-}%+w %<%="
   bind = resize =
   bind + resize +3
   bind - resize -3
-
-
-########## locql setup ############
-source .screenrc.local

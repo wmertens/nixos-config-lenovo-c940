@@ -13,7 +13,7 @@
   users.extraUsers.wmertens.extraGroups = [ "audio" ];
 
   # Pipewire config
-  hardware.pulseaudio.enable = false;
+  services.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;

@@ -5,21 +5,21 @@
 #   # nh = (builtins.getFlake (builtins.toString ./.)).outputs.nixos-hardware.nixosModules;
 #   nh = nixos-hardware.nixosModules;
 # in
-let t = specialArgs.flakeInputs.nixos-hardware.nixosModules; in
-{
+let t = specialArgs.flakeInputs.nixos-hardware.nixosModules;
+in {
   imports = [
-    # t.lenovo-yoga-7-14ARH7.amdgpu
-    # t.lenovo-yoga-7-14ARH7.nvidia
+    #t.lenovo-yoga-7-14ARH7.amdgpu
+    #t.lenovo-yoga-7-14ARH7.nvidia
     # fixes white flashing
     t.common-cpu-amd-raphael-igpu
     # PRIME
-    # t.common-gpu-nvidia
+    t.common-gpu-nvidia
     # hi res screen
     t.common-hidpi
     # enable pstate
     t.common-cpu-amd-pstate
   ];
-
+  boot.kernelModules = [ "amdgpu" ];
   hardware.enableRedistributableFirmware = true;
   hardware.cpu.amd.updateMicrocode = true;
   # active AMD pstate management
@@ -31,17 +31,19 @@ let t = specialArgs.flakeInputs.nixos-hardware.nixosModules; in
   # brightness sensor
   hardware.sensor.iio.enable = true;
 
-  #hardware.nvidia = {
-    #open = true;
+  hardware.nvidia = {
+    open = true;
     #modesetting.enable = lib.mkDefault true;
+
+    # This doesn't seem to do much and it causes a sleep attempt after wake
     #powerManagement.enable = lib.mkDefault true;
 
-    #prime = {
+    prime = {
       #offload.enable = lib.mkForce false;
-      #amdgpuBusId = lib.mkDefault "PCI:64:0:0";
-      #nvidiaBusId = "PCI:1:0:0";
-    #};
-  #};
+      amdgpuBusId = lib.mkDefault "PCI:64:0:0";
+      nvidiaBusId = "PCI:1:0:0";
+    };
+  };
 
   # console.font = "${pkgs.terminus_font}/share/consolefonts/ter-u28n.psf.gz";
 

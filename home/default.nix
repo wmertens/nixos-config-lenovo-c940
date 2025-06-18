@@ -3,9 +3,9 @@
 let
   user = "wmertens";
   mainHost = "wmertens-nixos";
-in {
+in rec {
   nixpkgs.config = {
-    permittedInsecurePackages = [ "electron-11.5.0" ];
+    # permittedInsecurePackages = [ "electron-11.5.0" ];
     allowUnfreePredicate = pkg:
       builtins.elem (lib.getName pkg) [
         "google-chrome"
@@ -13,6 +13,7 @@ in {
         "vscode-extension-ms-vsliveshare-vsliveshare"
         "vscode"
         "cursor"
+        "cuda_cudart"
       ];
   };
 
@@ -28,7 +29,7 @@ in {
 
   # Uses quite a lot of cpu for an idle service
   # services.keybase.enable = true;
-  services.kbfs.enable = true;
+  # services.kbfs.enable = true;
 
   # eID
   xdg.configFile."chromium/NativeMessagingHosts/eu.webeid.json".source =
@@ -38,7 +39,8 @@ in {
 
   programs.vscode = {
     enable = true;
-    extensions = with pkgs.vscode-extensions; [ ms-vsliveshare.vsliveshare ];
+    profiles.default.extensions = with pkgs.vscode-extensions;
+      [ ms-vsliveshare.vsliveshare ];
   };
 
   programs.autojump.enable = true;
@@ -107,7 +109,7 @@ in {
 
     <Super><Ctrl><Alt><Shift>Q,sqlitebrowser,,SQLite
     #<Super><Ctrl><Alt><Shift>K,code,code-url-handler,,
-    <Super><Ctrl><Alt><Shift>K,cursor,cursor-url-handler,,
+    <Super><Ctrl><Alt><Shift>K,cursor,cursor,,
     <Super><Ctrl><Alt><Shift>A,gnome-system-monitor,,
     # <Super><Ctrl><Alt><Shift>T,konsole,org.kde.konsole,
     <Super><Ctrl><Alt><Shift>T,ghostty,com.mitchellh.ghostty,
@@ -151,14 +153,14 @@ in {
 
     # TODO make this only for desktop use
     ulauncher
-    keybase-gui
+    # keybase-gui
     brightnessctl
     lguf-brightness
     google-chrome
     sqlitebrowser
     wmctrl
     nixpkgs-fmt
-    nixfmt
+    nixfmt-classic
     #teams
     #skype
     #zoom-us
@@ -166,13 +168,14 @@ in {
     pavucontrol
     wireshark
     signal-desktop
-    konsole
+    kdePackages.konsole
+    ghostty
     vorta
     # for qdbus
     #libsForQt5.full
     code-cursor
 
-    specialArgs.flakeInputs.ghostty.packages.x86_64-linux.default
+    # specialArgs.flakeInputs.ghostty.packages.x86_64-linux.default
 
     # Vitals extension
     lm_sensors
@@ -300,14 +303,9 @@ in {
           #   f=$(cowsay -f ''${cows[$(($RANDOM*(''${#cows[*]})/32768))]} <<<"$f")
           # }
           # qotd
-          f=$(cowsay -W 80 --random <<<"$f")
+          f=$(cowsay -W 80 --random --aurora <<<"$f")
         fi
 
-        if type -p lolcat >/dev/null; then
-          lolcat -p 0.5 <<<"$f"
-        else
-          echo "$f"
-        fi
         unset f
       fi
 
