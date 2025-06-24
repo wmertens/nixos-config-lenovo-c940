@@ -19,7 +19,28 @@ in {
     # enable pstate
     t.common-cpu-amd-pstate
   ];
-  boot.kernelModules = [ "amdgpu" ];
+  boot.kernelModules = [ "amdgpu" "kvm-amd" ];
+
+  boot.initrd.systemd.enable = true;
+  boot.initrd.systemd.emergencyAccess = true;
+  systemd.enableEmergencyMode = true;
+  boot.initrd.clevis.enable = true;
+  # uses tpm2 to unlock, generate with `clevis encrypt tpm2`
+  boot.initrd.clevis.devices.${config.fileSystems."/".device}.secretFile =
+    ./disk-pw.jwe;
+
+  fileSystems."/" = {
+    device = "/dev/disk/by-uuid/0ee58661-1e9f-4a10-9616-8350d5997c5f";
+    fsType = "bcachefs";
+    neededForBoot = true;
+  };
+
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-uuid/2FFA-D3E0";
+    fsType = "vfat";
+    options = [ "fmask=0022" "dmask=0022" ];
+  };
+
   hardware.enableRedistributableFirmware = true;
   hardware.cpu.amd.updateMicrocode = true;
   # active AMD pstate management
