@@ -113,6 +113,7 @@ in rec {
     <Super><Ctrl><Alt><Shift>A,gnome-system-monitor,,
     # <Super><Ctrl><Alt><Shift>T,konsole,org.kde.konsole,
     <Super><Ctrl><Alt><Shift>T,ghostty,com.mitchellh.ghostty,
+    # <Super><Ctrl><Alt><Shift>T,kitty,kitty
 
     # =============
     # Run only form
@@ -152,24 +153,24 @@ in rec {
     unzip
 
     # TODO make this only for desktop use
-    ulauncher
-    # keybase-gui
+    # broken due to libsoup2 dep
+    #ulauncher
+    # uses way too much cpu
+    #keybase-gui
     brightnessctl
     lguf-brightness
     google-chrome
+    firefox
     sqlitebrowser
     wmctrl
     nixpkgs-fmt
     nixfmt-classic
-    #teams
-    #skype
-    #zoom-us
-    #slack
     pavucontrol
     wireshark
     signal-desktop
     kdePackages.konsole
     ghostty
+    kitty
     vorta
     # for qdbus
     #libsForQt5.full
