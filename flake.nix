@@ -31,12 +31,12 @@
 
       hm = let realHM = home-manager.packages.${system}.default;
       in pkgs.writeScriptBin "home-manager" ''
+        #!${pkgs.bash}/bin/bash
         function getLink() {
           realpath /nix/var/nix/profiles/per-user/$USER/profile
         }
         prev=`getLink`
-        # Use path: to include the secrets
-        ${realHM}/bin/home-manager --flake path:${flakePath} "$@"
+        ${realHM}/bin/home-manager --flake ${flakePath} "$@"
         exitcode=$?
         if [ $exitcode -eq 0 ]; then
           next=`getLink`
@@ -48,6 +48,7 @@
       '';
       # todo secrets so we can use flake instead of path:
       nixos = pkgs.writeScriptBin "nixos" ''
+        #!${pkgs.bash}/bin/bash
         function getLink() {
           realpath /nix/var/nix/profiles/system
         }
@@ -59,8 +60,7 @@
           action=switch
         fi
         set -x
-        # Use path: to include the secrets
-        sudo ${pkgs.nixos-rebuild}/bin/nixos-rebuild $action --flake path:${flakePath} "$@"
+        sudo ${pkgs.nixos-rebuild}/bin/nixos-rebuild $action --flake ${flakePath} "$@"
         exitcode=$?
         set +x
         if [ $exitcode -eq 0 ]; then

@@ -1,0 +1,2 @@
+secrets/* filter=git-crypt-git-crypt-key diff=git-crypt-git-crypt-key
+home/secrets/* filter=git-crypt-git-crypt-key diff=git-crypt-git-crypt-key
