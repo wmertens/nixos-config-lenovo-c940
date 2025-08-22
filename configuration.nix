@@ -83,6 +83,8 @@
     # libguestfs
     # libguestfs-appliance
 
+    git-crypt
+
     # EID
     eid-mw
 
