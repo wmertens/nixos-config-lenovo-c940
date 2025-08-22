@@ -29,8 +29,8 @@
 
   # Enable CUPS to print documents.
   services.printing.enable = true;
-  # Support Canon
-  services.printing.drivers = [ pkgs.cnijfilter2 ];
+  # Support Canon & HP
+  services.printing.drivers = [ pkgs.cnijfilter2 pkgs.hplip ];
 
   # Enable the X11 windowing system.
   services.xserver.enable = true;
@@ -50,11 +50,10 @@
   #   uniemoji
   # ];
 
-  services.xserver.displayManager.gdm.enable = true;
-  services.xserver.displayManager.gdm.wayland = true;
-  services.xserver.desktopManager.gnome.enable = true;
+  services.displayManager.gdm.enable = true;
+  services.displayManager.gdm.wayland = true;
+  services.desktopManager.gnome.enable = true;
   services.gnome.gnome-browser-connector.enable = true;
-  # services.xserver.desktopManager.plasma5.enable = true;
 
   #services.flatpak.enable = true;
 }
