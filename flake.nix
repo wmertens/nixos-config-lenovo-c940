@@ -77,7 +77,7 @@
         wout-scripts = final.callPackage ./home/wout-scripts.nix { };
         google-chrome = prev.google-chrome.override {
           commandLineArgs =
-            "--enable-features=TouchpadOverscrollHistoryNavigation";
+            "--enable-features=TouchpadOverscrollHistoryNavigation --enable-precise-memory-info";
         };
         cursor = prev.cursor.override {
           commandLineArgs = "--ozone-platform-hint=wayland";
