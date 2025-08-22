@@ -4,6 +4,7 @@
   inputs = {
     nix.url = "github:NixOS/nix";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # stable.url = "github:NixOS/nixpkgs/nixos-25.05";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
