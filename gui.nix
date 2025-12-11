@@ -7,6 +7,11 @@
   # i915 settings
   #boot.extraModprobeConfig = "options i915 modeset=1 enable_fbc=1 fastboot=1";
 
+  boot.kernelParams = [
+    # Hopefully more responsiveness for UI
+    "preempt=full"
+  ];
+
   environment.sessionVariables.NIXOS_OZONE_WL = "1";
 
   environment.systemPackages = with pkgs; [
@@ -18,7 +23,14 @@
     wlr-randr
     # Make ibus work on Chrome, maybe?
     #    ibus-qt
+
+    # Media controls
+    playerctl
   ];
+
+  #programs.hyprland.enable = true;
+
+  programs.steam.enable = true;
 
   programs.gnupg.agent = {
     enable = true;
@@ -54,6 +66,11 @@
   services.displayManager.gdm.wayland = true;
   services.desktopManager.gnome.enable = true;
   services.gnome.gnome-browser-connector.enable = true;
+
+  xdg.portal = {
+    enable = true;
+    extraPortals = [ pkgs.xdg-desktop-portal-gnome ];
+  };
 
   #services.flatpak.enable = true;
 }

@@ -20,6 +20,8 @@ in rec {
   programs.nix-index.enable = true;
   programs.command-not-found.enable = false;
 
+  #wayland.windowManager.hyprland.enable = true; # enable Hyprland
+
   #services.pulseeffects.enable = true;
 
   # we use the one from the flake
@@ -49,9 +51,11 @@ in rec {
 
   programs.git = {
     enable = true;
-    userEmail = "Wout.Mertens@gmail.com";
-    userName = "Wout Mertens";
-    extraConfig = {
+    settings = {
+      user = {
+        email = "Wout.Mertens@gmail.com";
+        name = "Wout Mertens";
+      };
       merge.ff = "false";
       pull.ff = "only";
       #commit.gpgsign = true;
@@ -108,8 +112,8 @@ in rec {
     # <Super>KP_2,chromium-browser --app=https://mail.google.com/mail/u/0/#inbox
 
     <Super><Ctrl><Alt><Shift>Q,sqlitebrowser,,SQLite
-    #<Super><Ctrl><Alt><Shift>K,code,code-url-handler,,
-    <Super><Ctrl><Alt><Shift>K,cursor,cursor,,
+    <Super><Ctrl><Alt><Shift>K,code,code,,
+    # <Super><Ctrl><Alt><Shift>K,cursor,cursor,,
     <Super><Ctrl><Alt><Shift>A,gnome-system-monitor,,
     # <Super><Ctrl><Alt><Shift>T,konsole,org.kde.konsole,
     <Super><Ctrl><Alt><Shift>T,ghostty,com.mitchellh.ghostty,
@@ -291,8 +295,7 @@ in rec {
       export PAGER="less -XF"
       export LESS="-j5 -R"
       export LESSCHARSET="utf-8"
-    '';
-    initExtra = ''
+      
       # entertain me while we load
       if type -p fortune >/dev/null; then
         f=$(fortune -c -s computers cookie debian definitions drugs education fortunes goedel humorists law linux literature love magic medicine miscellaneous news off/art off/astrology off/atheism off/black-humor off/cookie off/debian off/definitions off/drugs off/fortunes off/linux off/miscellaneous off/politics off/privates off/racism off/religion off/riddles off/sex off/songs-poems off/vulgarity paradoxum people pets platitudes politics riddles science songs-poems startrek translate-me wisdom work | sed -e 's/(\/nix\/.*\//(/' -e 's/^%//')
@@ -306,6 +309,7 @@ in rec {
           # qotd
           f=$(cowsay -W 80 --random --aurora <<<"$f")
         fi
+	echo "$f"
 
         unset f
       fi
