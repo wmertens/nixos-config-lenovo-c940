@@ -295,7 +295,7 @@ in rec {
       export PAGER="less -XF"
       export LESS="-j5 -R"
       export LESSCHARSET="utf-8"
-      
+
       # entertain me while we load
       if type -p fortune >/dev/null; then
         f=$(fortune -c -s computers cookie debian definitions drugs education fortunes goedel humorists law linux literature love magic medicine miscellaneous news off/art off/astrology off/atheism off/black-humor off/cookie off/debian off/definitions off/drugs off/fortunes off/linux off/miscellaneous off/politics off/privates off/racism off/religion off/riddles off/sex off/songs-poems off/vulgarity paradoxum people pets platitudes politics riddles science songs-poems startrek translate-me wisdom work | sed -e 's/(\/nix\/.*\//(/' -e 's/^%//')
@@ -309,7 +309,7 @@ in rec {
           # qotd
           f=$(cowsay -W 80 --random --aurora <<<"$f")
         fi
-	echo "$f"
+        echo "$f"
 
         unset f
       fi
