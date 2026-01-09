@@ -27,6 +27,15 @@
         inherit system;
         overlays = [ self.overlays.default nix-alien.overlays.default ];
       };
+      nixpkgsConfig = rec {
+        config = {
+          allowUnsupportedSystem = false;
+          allowUnfree = true;
+          allowBroken = false;
+        };
+        overlays = [ self.overlays.default nix-alien.overlays.default ];
+      };
+
       # todo get the path programmatically. Needs to be the source, not the output path
       flakePath = "/home/wmertens/Projects/wout-config";
 
@@ -94,6 +103,7 @@
         modules = [
           # Use the flake path for the nix path
           {
+            nixpkgs = nixpkgsConfig;
             nix.nixPath = [
               # Point to a stable path so system updates immediately update
               "nixpkgs=/run/current-system/nixpkgs"
