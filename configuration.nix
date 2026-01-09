@@ -95,7 +95,7 @@
     bcachefs-tools
 
     sysprof
- 
+
     # cuda
     nvtopPackages.amd
     nvtopPackages.nvidia
@@ -143,7 +143,8 @@
   else
     "";
 
-  networking.networkmanager.plugins = [ pkgs.networkmanager-openconnect ];
+  networking.networkmanager.plugins =
+    [ pkgs.networkmanager-openconnect pkgs.networkmanager-openvpn ];
   # services.osticket.enable = true;
   # services.osticket.withSetup = false;
   # services.osticket.virtualHost = { serverName = "localhost"; };
@@ -179,9 +180,6 @@
       "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMy/AItxfpvrKf+bS9CK3rMwv4vhHEGhU3toAMqE+WQWebSVrEZvKIE3hE+o8ysVmTleKmU5in1h1yubVmUUfjY= /home/wmertens/.ssh/id_ecdsa"
     ];
   };
-
-  # Android
-  programs.adb.enable = true;
 
   # enable third-party binaries
   programs.nix-ld.enable = true;
