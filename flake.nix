@@ -84,6 +84,16 @@
     in {
       # Our overlays
       overlays.default = (final: prev: {
+        # keyd 2.6.0 eats my spaces, so use 2.5.0
+        keyd = prev.keyd.overrideAttrs (old: {
+          version = "2.5.0";
+          src = prev.fetchFromGitHub {
+            owner = "rvaiya";
+            repo = "keyd";
+            rev = "v2.5.0";
+            hash = "sha256-pylfQjTnXiSzKPRJh9Jli1hhin/MIGIkZxLKxqlReVo=";
+          };
+        });
         wout-scripts = final.callPackage ./home/wout-scripts.nix { };
         google-chrome = prev.google-chrome.override {
           commandLineArgs =
