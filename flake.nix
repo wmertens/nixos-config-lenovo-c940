@@ -142,7 +142,7 @@
             # home-manager config
             home = {
               inherit username homeDirectory;
-              stateVersion = "22.05";
+              stateVersion = "23.11";
             };
             nix.registry.N = {
               from = {

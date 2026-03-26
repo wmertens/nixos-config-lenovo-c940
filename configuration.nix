@@ -5,7 +5,7 @@
   imports = [
     # Customisations over default nixpkgs tree
     ./nixos/default.nix
-    ./nixpkgs/default.nix
+    # ./nixpkgs/default.nix
 
     # own configurations
     ./lenovo-yoga-7-pro.nix
@@ -62,6 +62,8 @@
 
   programs.droidcam.enable = true;
 
+  virtualisation.docker.enable = true;
+
   networking.hostName = "wmertens-nixos"; # Define your hostname.
 
   # Select internationalisation properties.
@@ -90,7 +92,7 @@
 
     # Printer
     gutenprint
-    cnijfilter2
+    # cnijfilter2
 
     bcachefs-tools
 
@@ -175,7 +177,14 @@
     description = "Wout Mertens";
     uid = 1000;
     isNormalUser = true;
-    extraGroups = [ "wheel" "adbusers" ]; # Enable ‘sudo’ for the user.
+    extraGroups = [
+      # Enable ‘sudo’ for the user.
+      "wheel"
+      # Android debugging
+      "adbusers"
+      # docker
+      "docker"
+    ];
     openssh.authorizedKeys.keys = [
       "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMy/AItxfpvrKf+bS9CK3rMwv4vhHEGhU3toAMqE+WQWebSVrEZvKIE3hE+o8ysVmTleKmU5in1h1yubVmUUfjY= /home/wmertens/.ssh/id_ecdsa"
     ];
@@ -197,7 +206,5 @@
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  # bcachefs
-  boot.kernelPackages = pkgs.linuxPackages_latest;
 }
 

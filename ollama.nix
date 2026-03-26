@@ -10,7 +10,10 @@
   };
   #environment.systemPackages = with pkgs; [ ollama-cuda ffmpeg ];
   nixpkgs.config = {
-    allowUnfreePredicate = pkg:
-      builtins.elem (lib.getName pkg) [ "cuda_cudart" ];
+    cudaSupport = true;
+    nvidia.acceptLicense = true;
+    allowUnfree = true;
+    # allowUnfreePredicate = pkg:
+    #   builtins.elem (lib.getName pkg) [ "cuda_cudart" ];
   };
 }

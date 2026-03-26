@@ -42,7 +42,7 @@
   # Enable CUPS to print documents.
   services.printing.enable = true;
   # Support Canon & HP
-  services.printing.drivers = [ pkgs.cnijfilter2 pkgs.hplip ];
+  # services.printing.drivers = [ pkgs.cnijfilter2 pkgs.hplip ];
 
   # Enable the X11 windowing system.
   services.xserver.enable = true;
