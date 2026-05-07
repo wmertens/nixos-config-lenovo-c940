@@ -10,7 +10,7 @@
   };
   #environment.systemPackages = with pkgs; [ ollama-cuda ffmpeg ];
   nixpkgs.config = {
-    cudaSupport = true;
+    #cudaSupport = true;
     nvidia.acceptLicense = true;
     allowUnfree = true;
     # allowUnfreePredicate = pkg:

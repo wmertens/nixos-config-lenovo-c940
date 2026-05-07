@@ -2,7 +2,7 @@
   description = "NixOS configuration with flakes";
 
   inputs = {
-    nix.url = "github:NixOS/nix";
+    determinate.url = "github:DeterminateSystems/determinate";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     # stable.url = "github:NixOS/nixpkgs/nixos-25.05";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
@@ -16,7 +16,15 @@
     flake-compat.url = "github:edolstra/flake-compat";
   };
 
-  outputs = { self, nixpkgs, nixos-hardware, home-manager, nix-alien, nix, ...
+  outputs =
+    {
+      self,
+      nixpkgs,
+      nixos-hardware,
+      home-manager,
+      nix-alien,
+      determinate,
+      ...
     }@flakeInputs:
     let
       system = "x86_64-linux";
@@ -25,7 +33,10 @@
       # use own overlays
       pkgs = import nixpkgs {
         inherit system;
-        overlays = [ self.overlays.default nix-alien.overlays.default ];
+        overlays = [
+          self.overlays.default
+          nix-alien.overlays.default
+        ];
       };
       nixpkgsConfig = rec {
         config = {
@@ -33,29 +44,35 @@
           allowUnfree = true;
           allowBroken = false;
         };
-        overlays = [ self.overlays.default nix-alien.overlays.default ];
+        overlays = [
+          self.overlays.default
+          nix-alien.overlays.default
+        ];
       };
 
       # todo get the path programmatically. Needs to be the source, not the output path
       flakePath = "/home/wmertens/Projects/wout-config";
 
-      hm = let realHM = home-manager.packages.${system}.default;
-      in pkgs.writeScriptBin "home-manager" ''
-        #!${pkgs.bash}/bin/bash
-        function getLink() {
-          realpath /nix/var/nix/profiles/per-user/$USER/profile
-        }
-        prev=`getLink`
-        ${realHM}/bin/home-manager --flake ${flakePath} "$@"
-        exitcode=$?
-        if [ $exitcode -eq 0 ]; then
-          next=`getLink`
-          if [ "$prev" != "$next" ]; then
-            nix store diff-closures $prev $next
+      hm =
+        let
+          realHM = home-manager.packages.${system}.default;
+        in
+        pkgs.writeScriptBin "home-manager" ''
+          #!${pkgs.bash}/bin/bash
+          function getLink() {
+            realpath /nix/var/nix/profiles/per-user/$USER/profile
+          }
+          prev=`getLink`
+          ${realHM}/bin/home-manager --flake ${flakePath} "$@"
+          exitcode=$?
+          if [ $exitcode -eq 0 ]; then
+            next=`getLink`
+            if [ "$prev" != "$next" ]; then
+              nix store diff-closures $prev $next
+            fi
           fi
-        fi
-        exit $exitcode
-      '';
+          exit $exitcode
+        '';
       # todo secrets so we can use flake instead of path:
       nixos = pkgs.writeScriptBin "nixos" ''
         #!${pkgs.bash}/bin/bash
@@ -81,30 +98,32 @@
         fi
         exit $exitcode
       '';
-    in {
+    in
+    {
       # Our overlays
-      overlays.default = (final: prev: {
-        # keyd 2.6.0 eats my spaces, so use 2.5.0
-        keyd = prev.keyd.overrideAttrs (old: {
-          version = "2.5.0";
-          src = prev.fetchFromGitHub {
-            owner = "rvaiya";
-            repo = "keyd";
-            rev = "v2.5.0";
-            hash = "sha256-pylfQjTnXiSzKPRJh9Jli1hhin/MIGIkZxLKxqlReVo=";
+      overlays.default = (
+        final: prev: {
+          # keyd 2.6.0 eats my spaces, so use 2.5.0
+          keyd = prev.keyd.overrideAttrs (old: {
+            version = "2.5.0";
+            src = prev.fetchFromGitHub {
+              owner = "rvaiya";
+              repo = "keyd";
+              rev = "v2.5.0";
+              hash = "sha256-pylfQjTnXiSzKPRJh9Jli1hhin/MIGIkZxLKxqlReVo=";
+            };
+          });
+          wout-scripts = final.callPackage ./home/wout-scripts.nix { };
+          google-chrome = prev.google-chrome.override {
+            commandLineArgs = "--enable-features=TouchpadOverscrollHistoryNavigation";
           };
-        });
-        wout-scripts = final.callPackage ./home/wout-scripts.nix { };
-        google-chrome = prev.google-chrome.override {
-          commandLineArgs =
-            "--enable-features=TouchpadOverscrollHistoryNavigation";
-        };
-        cursor = prev.cursor.override {
-          commandLineArgs = "--ozone-platform-hint=wayland";
-        };
-        home-manager = hm;
-        fortune = prev.fortune.override { withOffensive = true; };
-      });
+          cursor = prev.cursor.override {
+            commandLineArgs = "--ozone-platform-hint=wayland";
+          };
+          home-manager = hm;
+          fortune = prev.fortune.override { withOffensive = true; };
+        }
+      );
 
       # NixOS configuration
       nixosConfigurations.wmertens-nixos = nixpkgs.lib.nixosSystem {
@@ -127,7 +146,15 @@
             nix.registry.nixpkgs.flake = self.inputs.nixpkgs;
           }
           # add the helper scripts to the path
-          { environment.systemPackages = [ hm nixos ]; }
+          {
+            environment.systemPackages = [
+              hm
+              nixos
+            ];
+          }
+
+          # detsys
+          determinate.nixosModules.default
 
           ./configuration.nix
         ];

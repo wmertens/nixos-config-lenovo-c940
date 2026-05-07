@@ -1,7 +1,7 @@
 {
   pkgs,
   lib,
-  specialArgs,
+  flakeInputs,
   ...
 }:
 
@@ -22,8 +22,8 @@ rec {
         "cursor"
         "cuda_cudart"
         "antigravity"
-	"claude-code"
-	"codex"
+        "claude-code"
+        "codex"
       ];
   };
 
@@ -188,14 +188,14 @@ rec {
     vorta
     # for qdbus
     #libsForQt5.full
-    code-cursor
 
-    antigravity
+    # code-cursor
+    # antigravity
 
     claude-code
     codex
 
-    # specialArgs.flakeInputs.ghostty.packages.x86_64-linux.default
+    # flakeInputs.ghostty.packages.x86_64-linux.default
 
     # Vitals extension
     lm_sensors
@@ -236,6 +236,7 @@ rec {
     # Claude wants this for voice
     sox
 
+    python3
     # php
     # php
     # phpPackages.php-cs-fixer
@@ -246,9 +247,7 @@ rec {
     # Ember
     #watchman
 
-    nixVersions.latest
-    # temp
-    # specialArgs.flakeInputs.nix.packages.x86_64-linux.nix
+    flakeInputs.determinate.packages.x86_64-linux.default
   ];
 
   programs.bash = {
@@ -273,9 +272,10 @@ rec {
       restart = "sudo /run/current-system/sw/bin/systemctl restart";
       log = "/run/current-system/sw/bin/journalctl";
     };
-    bashrcExtra = builtins.replaceStrings
-      [ "@user@" "@mainHost@" "@sudo-wrap@" ]
-      [ user mainHost "${./sudo-wrap.bash}" ]
-      (builtins.readFile ./bashrc);
+    bashrcExtra =
+      builtins.replaceStrings
+        [ "@user@" "@mainHost@" "@sudo-wrap@" ]
+        [ user mainHost "${./sudo-wrap.bash}" ]
+        (builtins.readFile ./bashrc);
   };
 }

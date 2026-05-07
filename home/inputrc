@@ -39,7 +39,7 @@ set expand-tilde on
 "\e[1~": beginning-of-line
 "\e[4~": end-of-line
 
-#"\C-h": backward-kill-word
+"\C-h": backward-kill-word
 "\C-w": backward-kill-word
 
 "\C-u": undo

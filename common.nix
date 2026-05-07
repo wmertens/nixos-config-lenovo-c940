@@ -1,9 +1,14 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   nixpkgs.system = "x86_64-linux";
   nix.settings.auto-optimise-store = true;
-  nix.settings.experimental-features = "nix-command flakes ca-derivations lazy-trees";
+  nix.settings.experimental-features = "nix-command flakes ca-derivations";
 
   # Use zram swapping
   zramSwap.enable = true;

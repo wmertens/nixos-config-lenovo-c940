@@ -1,4 +1,11 @@
-{ config, pkgs, options, lib, ... }: {
+{
+  config,
+  pkgs,
+  options,
+  lib,
+  ...
+}:
+{
   # Don't kill BT on rebuild switch
   systemd.services.bluetooth.unitConfig.X-RestartIfChanged = false;
 
@@ -32,7 +39,13 @@
   #   substituters = https://cache.ngi0.nixos.org/
   #   trusted-public-keys = cache.ngi0.nixos.org-1:KqH5CBLNSyX184S9BKZJo1LxrxJ9ltnY2uAs5c/f1MA=
   # '';
-  nix.settings.trusted-users = [ "root" "wmertens" ];
+  nix.settings.trusted-users = [
+    "root"
+    "wmertens"
+  ];
+  environment.etc."determinate/config.json".text = builtins.toJSON {
+    garbageCollector.strategy = "disabled";
+  };
 
   # test screen
   # boot.kernelParams = [ "drm.debug=0xe" ];
@@ -92,6 +105,7 @@
 
     # Printer
     gutenprint
+    # Canon
     # cnijfilter2
 
     bcachefs-tools
@@ -99,8 +113,8 @@
     sysprof
 
     # cuda
-    nvtopPackages.amd
-    nvtopPackages.nvidia
+    # nvtopPackages.amd
+    # nvtopPackages.nvidia
     radeontop
     glances
   ];
@@ -140,13 +154,16 @@
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
 
-  networking.extraHosts = if builtins.pathExists ./secrets/extraHosts.conf then
-    builtins.readFile ./secrets/extraHosts.conf
-  else
-    "";
+  networking.extraHosts =
+    if builtins.pathExists ./secrets/extraHosts.conf then
+      builtins.readFile ./secrets/extraHosts.conf
+    else
+      "";
 
-  networking.networkmanager.plugins =
-    [ pkgs.networkmanager-openconnect pkgs.networkmanager-openvpn ];
+  networking.networkmanager.plugins = [
+    pkgs.networkmanager-openconnect
+    pkgs.networkmanager-openvpn
+  ];
   # services.osticket.enable = true;
   # services.osticket.withSetup = false;
   # services.osticket.virtualHost = { serverName = "localhost"; };
@@ -163,9 +180,7 @@
   virtualisation.libvirtd.allowedBridges = [ "all" ];
   services.nfs.server.enable = true;
   services.nfs.server.exports = ''
-    /home/wmertens 192.168.122.0/24(rw,insecure,all_squash,anonuid=${
-      toString config.users.extraUsers.wmertens.uid
-    })
+    /home/wmertens 192.168.122.0/24(rw,insecure,all_squash,anonuid=${toString config.users.extraUsers.wmertens.uid})
   '';
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
@@ -207,4 +222,3 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 }
-
