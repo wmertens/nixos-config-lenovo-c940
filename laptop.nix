@@ -1,7 +1,7 @@
 { config, pkgs, options, ... }:
 
 {
-  #services.swapspace.enable = true;
+  services.swapspace.enable = true;
   #services.swapspace.settings = {
     #cooldown = 50;
     #max_swapsize = "500M";

@@ -149,6 +149,14 @@ rec {
     XMODIFIERS = "@im=ibus";
   };
 
+  dconf.settings."org/gnome/desktop/peripherals/touchpad" = {
+    middle-click-emulation = true;
+  };
+
+  dconf.settings."org/gnome/desktop/interface" = {
+    gtk-enable-primary-paste = true;
+  };
+
   home.packages = with pkgs; [
     wout-scripts
     bashInteractive
@@ -206,6 +214,7 @@ rec {
     findutils
     git
     git-crypt
+    gh
     gnupg
     gnused
     highlight
@@ -213,8 +222,7 @@ rec {
     less
     lsof
     mtr
-    # broken build
-    #bfr
+    pv
 
     nodejs_24
     corepack_24
