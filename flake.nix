@@ -14,6 +14,10 @@
       inputs.flake-compat.follows = "flake-compat";
     };
     flake-compat.url = "github:edolstra/flake-compat";
+    pnpm-nix-provider = {
+      url = "github:wmertens/pnpm-nix-provider";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =

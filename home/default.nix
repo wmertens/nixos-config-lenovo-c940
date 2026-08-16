@@ -10,6 +10,15 @@ let
   mainHost = "wmertens-nixos";
 in
 rec {
+  imports = [ flakeInputs.pnpm-nix-provider.homeManagerModules.default ];
+
+  # pnpm materializes node_modules from the Nix store; impure host-builds
+  # whatever the sandbox can't (network postinstalls), transparently.
+  programs.pnpm-nix-provider = {
+    enable = true;
+    impure = true;
+  };
+
   nixpkgs.config = {
     # permittedInsecurePackages = [ "electron-11.5.0" ];
     allowUnfreePredicate =
@@ -225,7 +234,9 @@ rec {
     pv
 
     nodejs_24
-    corepack_24
+    # pnpm itself comes from programs.pnpm-nix-provider (provider-aware
+    # build); corepack would shadow it with the stock shim.
+    (pkgs.writeShellScriptBin "pnpm-orig" ''exec ${pkgs.pnpm}/bin/pnpm "$@"'')
 
     android-tools
 
