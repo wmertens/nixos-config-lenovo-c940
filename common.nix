@@ -11,7 +11,12 @@
   nix.settings.experimental-features = "nix-command flakes ca-derivations";
 
   # Use zram swapping
-  zramSwap.enable = true;
+  #zramSwap.enable = true;
+  #zramSwap.memoryPercent = 90;
+
+  # Use zswap
+  boot.zswap.enable = true;
+  boot.zswap.maxPoolPercent = 50;
 
   boot.tmp.cleanOnBoot = true;
 

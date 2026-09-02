@@ -41,6 +41,10 @@ in {
     options = [ "fmask=0022" "dmask=0022" ];
   };
 
+  swapDevices = [ {
+    device = "/var/lib/swapfile";
+  } ];
+
   hardware.enableRedistributableFirmware = true;
   hardware.cpu.amd.updateMicrocode = true;
   # active AMD pstate management
