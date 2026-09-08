@@ -58,6 +58,9 @@ rec {
   xdg.configFile."google-chrome/NativeMessagingHosts/eu.webeid.json".source =
     "${pkgs.web-eid-app}/share/web-eid/eu.webeid.json";
 
+  xdg.configFile."autostart/com.tomjwatson.Emote.desktop".source =
+    "${pkgs.emote}/share/applications/com.tomjwatson.Emote.desktop";
+
   programs.vscode = {
     enable = true;
     profiles.default.extensions = with pkgs.vscode-extensions; [ ms-vsliveshare.vsliveshare ];
@@ -140,6 +143,9 @@ rec {
     # Run only form
     # =============
 
+    # Search emoji, then paste the selection with Ctrl+V.
+    <Super>period,${pkgs.emote}/bin/emote
+
     # open a konsole window
     # <Super><Ctrl><Alt><Shift>D,${pkgs.wout-scripts}/bin/new-konsole
     # open devdocs.io in a new chrome app window (should only open one but can't find how to do that)
@@ -189,6 +195,7 @@ rec {
     # uses way too much cpu
     #keybase-gui
     brightnessctl
+    emote
     lguf-brightness
     google-chrome
     firefox

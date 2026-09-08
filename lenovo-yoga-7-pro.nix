@@ -42,7 +42,7 @@ in {
   };
 
   swapDevices = [ {
-    device = "/var/lib/swapfile";
+    device = "/dev/disk/by-uuid/3a1a2284-ba90-4cb4-a101-abe7c92f7e69";
   } ];
 
   hardware.enableRedistributableFirmware = true;

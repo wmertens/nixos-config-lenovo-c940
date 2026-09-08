@@ -8,7 +8,11 @@
 {
   nixpkgs.system = "x86_64-linux";
   nix.settings.auto-optimise-store = true;
-  nix.settings.experimental-features = "nix-command flakes ca-derivations";
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+    "ca-derivations"
+  ];
 
   # Use zram swapping
   #zramSwap.enable = true;
@@ -24,11 +28,11 @@
     name_servers_append="1.1.1.1"
   '';
 
-  services.journald.extraConfig = ''
-    RateLimitBurst=1500
-    RateLimitIntervalSec=2
-    SystemKeepFree=1.5G
-  '';
+  services.journald.settings.Journal = {
+    RateLimitBurst = 1500;
+    RateLimitIntervalSec = 2;
+    SystemKeepFree = "1.5G";
+  };
 
   services.openssh = {
     enable = true;
