@@ -1,0 +1,727 @@
+diff --git a/fs/Makefile b/fs/Makefile
+index 273524bf..44c4e2ff 100644
+--- a/fs/Makefile
++++ b/fs/Makefile
+@@ -220,7 +220,8 @@ bcachefs-y		:=			\
+ 	vfs/io.o				\
+ 	vfs/buffered.o				\
+ 	vfs/direct.o				\
+-	vfs/pagecache.o
++	vfs/pagecache.o				\
++	vfs/swap.o
+ 
+ ifdef CONFIG_DEBUG_FS
+ 	bcachefs-y += debug/async_objs.o
+diff --git a/fs/btree/bkey_buf.h b/fs/btree/bkey_buf.h
+index 7be03293..9391260e 100644
+--- a/fs/btree/bkey_buf.h
++++ b/fs/btree/bkey_buf.h
+@@ -56,6 +56,12 @@ static inline void bch2_bkey_buf_init(struct bkey_buf *s)
+ 	bkey_init(&s->k->k);
+ }
+ 
++static inline void bch2_bkey_buf_init_prealloc(struct bkey_buf *s, void *buf)
++{
++	s->k = buf;
++	bkey_init(&s->k->k);
++}
++
+ static inline void bch2_bkey_buf_exit(struct bkey_buf *s)
+ {
+ 	if (s->k != (void *) s->onstack)
+diff --git a/fs/btree/commit.c b/fs/btree/commit.c
+index d3b8febd..81ca0487 100644
+--- a/fs/btree/commit.c
++++ b/fs/btree/commit.c
+@@ -378,6 +378,13 @@ inline void bch2_btree_insert_key_leaf(struct btree_trans *trans,
+ 	if (b->sib_u64s[1] != U16_MAX && live_u64s_added < 0)
+ 		b->sib_u64s[1] = max(b->nr.live_u64s, (int) b->sib_u64s[1] + live_u64s_added);
+ 
++	if (unlikely(b->nr.live_u64s * 5 > btree_max_u64s(c) * 4) &&
++	    b->c.btree_id == BTREE_ID_extents && b->c.level == 0)
++		bch_info_ratelimited(c,
++			"swap: extents leaf at %u%% fill (%u/%zu u64s)",
++			(unsigned)(b->nr.live_u64s * 100 / btree_max_u64s(c)),
++			b->nr.live_u64s, btree_max_u64s(c));
++
+ 	if (u64s_added > live_u64s_added &&
+ 	    unlikely(bch2_maybe_compact_whiteouts(c, b)))
+ 		bch2_trans_node_reinit_iter(trans, b);
+diff --git a/fs/btree/write_buffer.c b/fs/btree/write_buffer.c
+index 8c71f5af..e39e1144 100644
+--- a/fs/btree/write_buffer.c
++++ b/fs/btree/write_buffer.c
+@@ -1125,8 +1125,17 @@ static int bch2_btree_write_buffer_flush_nocheck_rw(struct btree_trans *trans)
+ 		struct bch_fs_btree_write_buffer *wb = &c->btree.write_buffer[i];
+ 
+ 		if (mutex_trylock(&wb->flushing.lock)) {
+-			bch2_trans_unlock_long(trans);
+-			ret = bch2_btree_write_buffer_flush_locked(trans, i, WB_FLUSH_tryflush);
++			/*
++			 * PF_MEMALLOC prevents entering direct reclaim while
++			 * holding wb->flushing.lock.  Without it, btree node
++			 * allocation inside the flush can enter reclaim →
++			 * reclaim needs journal → journal needs write-buffer
++			 * flush → blocked on our mutex → deadlock.
++			 */
++			scoped_guard(memalloc_flags, PF_MEMALLOC_NOIO|PF_MEMALLOC) {
++				bch2_trans_unlock_long(trans);
++				ret = bch2_btree_write_buffer_flush_locked(trans, i, WB_FLUSH_tryflush);
++			}
+ 			mutex_unlock(&wb->flushing.lock);
+ 			if (ret)
+ 				break;
+@@ -1236,7 +1245,13 @@ static void bch2_btree_write_buffer_flush_work_fn(struct work_struct *work)
+ 	struct bch_fs *c = wb->c;
+ 	enum wb_flush_caller caller = READ_ONCE(wb->flush_work_caller);
+ 
+-	scoped_guard(memalloc_flags, PF_MEMALLOC_NOIO) {
++	/*
++	 * PF_MEMALLOC in addition to NOIO: allocations inside the flush must
++	 * not enter direct reclaim at all while wb->flushing.lock is held —
++	 * reclaim can need the journal, which needs write-buffer flush,
++	 * which blocks on our mutex.
++	 */
++	scoped_guard(memalloc_flags, PF_MEMALLOC_NOIO|PF_MEMALLOC) {
+ 		guard(mutex)(&wb->flushing.lock);
+ 		CLASS(btree_trans, trans)(c);
+ 		while (1) {
+diff --git a/fs/data/extents_types.h b/fs/data/extents_types.h
+index 9e717a8e..ff8bf04f 100644
+--- a/fs/data/extents_types.h
++++ b/fs/data/extents_types.h
+@@ -50,7 +50,8 @@ struct bch_io_failures {
+ 	x(must_bounce)			\
+ 	x(must_clone)			\
+ 	x(in_retry)			\
+-	x(no_poison_check)
++	x(no_poison_check)		\
++	x(swap)
+ 
+ enum __bch_read_flags {
+ #define x(n)	__BCH_READ_##n,
+diff --git a/fs/data/read.c b/fs/data/read.c
+index 91cfa347..27afc0a7 100644
+--- a/fs/data/read.c
++++ b/fs/data/read.c
+@@ -965,7 +965,18 @@ static int __bch2_read_endio_work(struct bch_read_bio *rbio)
+ 	struct bch_csum csum;
+ 	int ret;
+ 
+-	guard(memalloc_flags)(PF_MEMALLOC_NOIO);
++	/*
++	 * PF_MEMALLOC_NOIO for all reads: allocations here must not recurse
++	 * into IO.  For swap reads (BCH_READ_swap): also set PF_MEMALLOC, so
++	 * that an allocation cannot enter direct reclaim, which would swap
++	 * out pages and issue writes contending for the btree locks this
++	 * read already holds.  The write path does the same for
++	 * BCH_WRITE_swap; this is the read half of it, and it matters
++	 * because this function runs after ->swap_rw() has returned, outside
++	 * the noreclaim section that covers submission.
++	 */
++	guard(memalloc_flags)(PF_MEMALLOC_NOIO |
++		((rbio->flags & BCH_READ_swap) ? PF_MEMALLOC : 0));
+ 
+ 	if (bch2_read_corrupt_device == rbio->pick.ptr.dev ||
+ 	    bch2_read_corrupt_device < 0)
+diff --git a/fs/data/write.c b/fs/data/write.c
+index 84dcad77..180b9099 100644
+--- a/fs/data/write.c
++++ b/fs/data/write.c
+@@ -730,6 +730,8 @@
+ 
+ #include "debug/async_objs.h"
+ 
++#include "vfs/swap.h"
++
+ #include "fs/inode.h"
+ 
+ #include "init/dev.h"
+@@ -1104,7 +1106,12 @@ static int bch2_write_index_default(struct bch_write_op *op)
+ 	CLASS(btree_trans, trans)(c);
+ 
+ 	struct bkey_buf sk __cleanup(bch2_bkey_buf_exit);
+-	bch2_bkey_buf_init(&sk);
++	if (op->prealloc_bkey_buf) {
++		bch2_bkey_buf_init_prealloc(&sk, op->prealloc_bkey_buf);
++		op->prealloc_bkey_buf = NULL;
++	} else {
++		bch2_bkey_buf_init(&sk);
++	}
+ 
+ 	do {
+ 		bch2_trans_begin(trans);
+@@ -1502,12 +1509,63 @@ void bch2_write_point_do_index_updates(struct work_struct *work)
+ 
+ 		op->flags |= BCH_WRITE_in_worker;
+ 
++		bool is_swap = op->flags & BCH_WRITE_swap;
++
++		/*
++		 * Pre-allocate the bkey spill buffer while we can still
++		 * do normal allocations.  Use GFP_NOWAIT to avoid entering
++		 * direct reclaim — the kworker context can amplify the
++		 * journal_write → reclaim → btree_shrinker → journal
++		 * deadlock.  If this fails, the old __GFP_NOFAIL path
++		 * under PF_MEMALLOC will handle it.
++		 */
++		if (is_swap && !op->prealloc_bkey_buf)
++			op->prealloc_bkey_buf = kmalloc(2048, GFP_NOWAIT);
++
++		/*
++		 * Swap write ops must not enter direct reclaim —
++		 * we're already in the swap writeback path and
++		 * reclaim would try to swap more pages → deadlock.
++		 */
++		unsigned int noreclaim_flags = 0;
++		if (is_swap)
++			noreclaim_flags = memalloc_noreclaim_save();
++
++		u64 swap_start_ns = is_swap ? ktime_get_ns() : 0;
++
+ 		__bch2_write_index(op);
+ 
++		if (unlikely(op->prealloc_bkey_buf)) {
++			kfree(op->prealloc_bkey_buf);
++			op->prealloc_bkey_buf = NULL;
++		}
++
+ 		if (!(op->flags & BCH_WRITE_submitted))
+ 			__bch2_write(op);
+ 		else
+ 			bch2_write_done(op);
++
++		if (is_swap) {
++			u64 elapsed = ktime_get_ns() - swap_start_ns;
++			memalloc_noreclaim_restore(noreclaim_flags);
++
++			if (unlikely(elapsed > 2ULL * NSEC_PER_SEC)) {
++				pr_err("bcachefs: swap kworker STALL: %llu ms in index_updates",
++				       elapsed / NSEC_PER_MSEC);
++				WARN_ON_ONCE(1);
++			}
++			/*
++			 * Debug builds only, and with headroom over the
++			 * legitimate tail: under total swap exhaustion with
++			 * the OOM killer active, >30 s stalls were measured
++			 * while the fs kept completing ops.  A real reclaim
++			 * deadlock never completes, so 60 s still catches it.
++			 * An unconditional BUG() here would panic production
++			 * on a bad-day stall.
++			 */
++			if (unlikely(elapsed > 60ULL * NSEC_PER_SEC))
++				BUG_ON(IS_ENABLED(CONFIG_BCACHEFS_DEBUG));
++		}
+ 	}
+ }
+ 
+@@ -2496,7 +2554,14 @@ static void __bch2_write(struct bch_write_op *op)
+ 		(!(op->flags & BCH_WRITE_submitted) &&
+ 		 !(op->flags & BCH_WRITE_in_worker));
+ 
+-	guard(memalloc_flags)(PF_MEMALLOC_NOIO);
++	/*
++	 * PF_MEMALLOC_NOIO for all writes: allocations must not recurse
++	 * into reclaim-issued IO.  For swap writes (BCH_WRITE_swap): also
++	 * set PF_MEMALLOC to prevent entering direct reclaim entirely —
++	 * swap writes run during reclaim and must not recurse into it.
++	 */
++	guard(memalloc_flags)(PF_MEMALLOC_NOIO |
++		((op->flags & BCH_WRITE_swap) ? PF_MEMALLOC : 0));
+ 
+ 	if (unlikely(op->opts.nocow &&
+ 		     c->opts.nocow_enabled) &&
+diff --git a/fs/data/write.h b/fs/data/write.h
+index aaace3a6..2080d400 100644
+--- a/fs/data/write.h
++++ b/fs/data/write.h
+@@ -58,6 +58,7 @@ static inline void bch2_write_op_init(struct bch_write_op *op, struct bch_fs *c,
+ 	op->new_i_size		= U64_MAX;
+ 	op->i_sectors_delta	= 0;
+ 	op->devs_need_flush	= NULL;
++	op->prealloc_bkey_buf	= NULL;
+ }
+ 
+ CLOSURE_CALLBACK(bch2_write);
+diff --git a/fs/data/write_types.h b/fs/data/write_types.h
+index b0dc9839..7c100b17 100644
+--- a/fs/data/write_types.h
++++ b/fs/data/write_types.h
+@@ -28,7 +28,8 @@
+ 	x(move)				\
+ 	x(in_worker)			\
+ 	x(submitted)			\
+-	x(convert_unwritten)
++	x(convert_unwritten)		\
++	x(swap)
+ 
+ enum __bch_write_flags {
+ #define x(f)	__BCH_WRITE_##f,
+@@ -153,6 +154,8 @@ struct bch_write_op {
+ 	 */
+ 	struct bch_devs_mask	*devs_need_flush;
+ 
++	void			*prealloc_bkey_buf;
++
+ 	/* Must be last: */
+ 	struct bch_write_bio	wbio;
+ };
+diff --git a/fs/vfs/direct.c b/fs/vfs/direct.c
+index 2da85648..b418b7fe 100644
+--- a/fs/vfs/direct.c
++++ b/fs/vfs/direct.c
+@@ -80,6 +80,16 @@ static int __bch2_direct_IO_read(struct kiocb *req, struct iov_iter *iter,
+ 	struct bch_inode_opts opts;
+ 	bch2_inode_opts_get_inode(c, &inode->ei_inode, &opts);
+ 
++	/*
++	 * Mirrors the BCH_WRITE_swap decision in the dio write path: keyed on
++	 * the inode, so it holds for every read of a swapfile however it was
++	 * entered. The read completion runs after ->swap_rw() has returned
++	 * and so is outside its memalloc_noreclaim_save() section; the flag
++	 * is what lets it re-establish PF_MEMALLOC for itself.
++	 */
++	if (IS_SWAPFILE(&inode->v))
++		flags |= BCH_READ_swap;
++
+ 	/* bios must be 512 byte aligned: */
+ 	if ((offset|iter->count) & (SECTOR_SIZE - 1))
+ 		return bch_err_throw(c, EINVAL_unaligned_io);
+@@ -331,7 +341,8 @@ static __always_inline long bch2_dio_write_done(struct dio_write *dio)
+ 	struct bch_inode_info *inode = dio->inode;
+ 	bool sync = dio->sync;
+ 
+-	bch2_pagecache_block_put(inode);
++	if (!IS_SWAPFILE(&inode->v))
++		bch2_pagecache_block_put(inode);
+ 
+ 	kfree(dio->iov);
+ 
+@@ -464,7 +475,10 @@ static __always_inline long bch2_dio_write_loop(struct dio_write *dio)
+ 			dio->op.flags |= BCH_WRITE_sync;
+ 		if (dio->flush)
+ 			dio->op.flags |= BCH_WRITE_flush;
+-		dio->op.flags |= BCH_WRITE_check_enospc;
++		if (IS_SWAPFILE(&inode->v))
++			dio->op.flags |= BCH_WRITE_swap;
++		else
++			dio->op.flags |= BCH_WRITE_check_enospc;
+ 
+ 		ret = bch2_quota_reservation_add(c, inode, &dio->quota_res,
+ 						 bio_sectors(bio), true);
+@@ -556,6 +570,17 @@ ssize_t bch2_direct_write(struct kiocb *req, struct iov_iter *iter)
+ 	if (!enumerated_ref_tryget(&c->writes, BCH_WRITE_REF_dio_write))
+ 		return -EROFS;
+ 
++	/*
++	 * Swap I/O: the VFS sets IS_SWAPFILE on the inode during swapon.
++	 * Skip generic_write_checks (rejects swap files with ETXTBSY),
++	 * inode locking, and mtime updates.  Swap I/O is serialized by
++	 * the swap subsystem; PF_MEMALLOC is set by bch2_swap_rw().
++	 */
++	if (IS_SWAPFILE(&inode->v)) {
++		locked = false;
++		goto swap_skip_checks;
++	}
++
+ 	inode_lock(&inode->v);
+ 
+ 	ret = generic_write_checks(req, iter);
+@@ -570,17 +595,21 @@ ssize_t bch2_direct_write(struct kiocb *req, struct iov_iter *iter)
+ 	if (unlikely(ret))
+ 		goto err_put_write_ref;
+ 
++swap_skip_checks:
+ 	if (unlikely((req->ki_pos|iter->count) & (block_bytes(c) - 1))) {
+ 		ret = bch_err_throw(c, EINVAL_unaligned_io);
+ 		goto err_put_write_ref;
+ 	}
+ 
+ 	inode_dio_begin(&inode->v);
+-	bch2_pagecache_block_get(inode);
++	if (!IS_SWAPFILE(&inode->v))
++		bch2_pagecache_block_get(inode);
+ 
+-	extending = req->ki_pos + iter->count > inode->v.i_size;
++	extending = !IS_SWAPFILE(&inode->v) &&
++		    req->ki_pos + iter->count > inode->v.i_size;
+ 	if (!extending) {
+-		inode_unlock(&inode->v);
++		if (locked)
++			inode_unlock(&inode->v);
+ 		locked = false;
+ 	}
+ 
+@@ -604,7 +633,7 @@ ssize_t bch2_direct_write(struct kiocb *req, struct iov_iter *iter)
+ 	dio->iter		= *iter;
+ 	dio->op.c		= c;
+ 
+-	if (unlikely(mapping->nrpages)) {
++	if (!IS_SWAPFILE(&inode->v) && unlikely(mapping->nrpages)) {
+ 		ret = bch2_write_invalidate_inode_pages_range(mapping,
+ 						req->ki_pos,
+ 						req->ki_pos + iter->count - 1);
+@@ -618,7 +647,8 @@ out:
+ 		inode_unlock(&inode->v);
+ 	return ret;
+ err_put_bio:
+-	bch2_pagecache_block_put(inode);
++	if (!IS_SWAPFILE(&inode->v))
++		bch2_pagecache_block_put(inode);
+ 	bio_put(bio);
+ 	inode_dio_end(&inode->v);
+ err_put_write_ref:
+diff --git a/fs/vfs/fs.c b/fs/vfs/fs.c
+index 70e5ea8e..166e4207 100644
+--- a/fs/vfs/fs.c
++++ b/fs/vfs/fs.c
+@@ -33,6 +33,7 @@
+ #include "vfs/buffered.h"
+ #include "vfs/direct.h"
+ #include "vfs/pagecache.h"
++#include "vfs/swap.h"
+ 
+ #include <linux/aio.h>
+ #include <linux/backing-dev.h>
+@@ -2030,6 +2031,9 @@ static const struct address_space_operations bch_address_space_operations = {
+ 	.migrate_folio	= filemap_migrate_folio,
+ #endif
+ 	.error_remove_folio = generic_error_remove_folio,
++	.swap_activate	= bch2_swap_activate,
++	.swap_deactivate = bch2_swap_deactivate,
++	.swap_rw	= bch2_swap_rw,
+ };
+ 
+ struct bcachefs_fid {
+diff --git a/fs/vfs/fs.h b/fs/vfs/fs.h
+index 8f1ffd69..408c398b 100644
+--- a/fs/vfs/fs.h
++++ b/fs/vfs/fs.h
+@@ -86,6 +86,12 @@ struct bch_inode_info {
+ 	struct bch_inode_unpacked ei_inode;
+ 
+ 	struct delayed_work	ei_writeback_timer;
++
++	/*
++	 * Disk reservation held while this inode is an active swap file.
++	 * Sized to cover the full swap file so ENOSPC can't occur during
++	 * swap COW writes.  Zero when not a swap file.
++	 */
+ };
+ 
+ #define bch2_pagecache_add_put(i)	bch2_two_state_unlock(&(i)->ei_pagecache_lock, 0)
+diff --git a/fs/vfs/io.c b/fs/vfs/io.c
+index aac6e40a..6cfb3906 100644
+--- a/fs/vfs/io.c
++++ b/fs/vfs/io.c
+@@ -838,24 +838,26 @@ static noinline long bchfs_fallocate(struct bch_inode_info *inode, int mode,
+ 	return ret ?: ret2;
+ }
+ 
+-long bch2_fallocate_dispatch(struct file *file, int mode,
+-			     loff_t offset, loff_t len)
++/*
++ * Body of bch2_fallocate_dispatch() with i_rwsem left to the caller.
++ *
++ * ->swap_activate() needs to fallocate but cannot use the dispatch:
++ * swapon() already holds i_rwsem across it (mm/swapfile.c takes it before
++ * setup_swap_extents(), which is what calls ->swap_activate), so going in
++ * through the dispatch would deadlock on inode_lock.
++ */
++long __bch2_fallocate(struct bch_inode_info *inode, int mode,
++		      loff_t offset, loff_t len)
+ {
+-	struct bch_inode_info *inode = file_bch_inode(file);
+ 	struct bch_fs *c = inode->v.i_sb->s_fs_info;
+ 	long ret;
+ 
+ 	if (!enumerated_ref_tryget(&c->writes, BCH_WRITE_REF_fallocate))
+ 		return -EROFS;
+ 
+-	inode_lock(&inode->v);
+ 	inode_dio_wait(&inode->v);
+ 	guard(bch2_pagecache_block)(inode);
+ 
+-	ret = file_modified(file);
+-	if (ret)
+-		goto err;
+-
+ 	if (!(mode & ~(FALLOC_FL_KEEP_SIZE|FALLOC_FL_ZERO_RANGE)))
+ 		ret = bchfs_fallocate(inode, mode, offset, len);
+ 	else if (mode == (FALLOC_FL_PUNCH_HOLE|FALLOC_FL_KEEP_SIZE))
+@@ -869,10 +871,26 @@ long bch2_fallocate_dispatch(struct file *file, int mode,
+ 
+ 	scoped_guard(spinlock, &inode->ei_reserved_lock)
+ 		inode->ei_reserved_start = inode->ei_reserved_end = 0;
+-err:
+-	inode_unlock(&inode->v);
++
+ 	enumerated_ref_put(&c->writes, BCH_WRITE_REF_fallocate);
+ 
++	return ret;
++}
++
++long bch2_fallocate_dispatch(struct file *file, int mode,
++			     loff_t offset, loff_t len)
++{
++	struct bch_inode_info *inode = file_bch_inode(file);
++	long ret;
++
++	inode_lock(&inode->v);
++
++	ret = file_modified(file);
++	if (!ret)
++		ret = __bch2_fallocate(inode, mode, offset, len);
++
++	inode_unlock(&inode->v);
++
+ 	return bch2_err_class(ret);
+ }
+ 
+diff --git a/fs/vfs/io.h b/fs/vfs/io.h
+index 0b40b306..66262341 100644
+--- a/fs/vfs/io.h
++++ b/fs/vfs/io.h
+@@ -167,6 +167,7 @@ int bch2_fsync(struct file *, loff_t, loff_t, int);
+ 
+ void bch2_zero_pagecache_posteof(struct bch_inode_info *);
+ int bchfs_truncate(struct mnt_idmap *, struct bch_inode_info *, struct iattr *);
++long __bch2_fallocate(struct bch_inode_info *, int, loff_t, loff_t);
+ long bch2_fallocate_dispatch(struct file *, int, loff_t, loff_t);
+ 
+ loff_t bch2_remap_file_range(struct file *, loff_t, struct file *,
+diff --git a/fs/vfs/swap.c b/fs/vfs/swap.c
+new file mode 100644
+index 00000000..97480414
+--- /dev/null
++++ b/fs/vfs/swap.c
+@@ -0,0 +1,209 @@
++// SPDX-License-Identifier: GPL-2.0
++#ifndef NO_BCACHEFS_FS
++
++#include "bcachefs.h"
++#include "alloc/buckets.h"
++#include "btree/cache.h"
++#include "btree/iter.h"
++#include "btree/update.h"
++#include "data/extents.h"
++#include "data/io_misc.h"
++#include "data/write.h"
++#include "vfs/fs.h"
++#include "vfs/io.h"
++#include "vfs/swap.h"
++#include "vfs/direct.h"
++#include "vfs/buffered.h"
++
++#include <linux/sched/mm.h>
++#include <linux/swap.h>
++#include <linux/falloc.h>
++#include <linux/ktime.h>
++
++/*
++ * Swap file support for bcachefs.
++ *
++ * Uses the SWP_FS_OPS path (like NFS) so that bcachefs stays in the I/O
++ * loop for swap operations.  This enables checksumming, encryption,
++ * replication, and multi-device support for swap data.
++ *
++ * Key design points:
++ * - PF_MEMALLOC is set during swap I/O to prevent reclaim re-entry
++ * - BCH_WRITE_swap flag propagates the noreclaim context to the
++ *   write index worker thread
++ */
++
++/*
++ * Swap I/O diagnostics.
++ *
++ * Track swap ops and detect when they stall.  Under memory pressure the
++ * write path can block indefinitely on allocation — we want to crash
++ * early with a useful stack trace rather than silently hang.
++ *
++ * These count what ->swap_rw() can see, which is submission, not
++ * completion: an op that returns -EIOCBQUEUED finishes later in a
++ * worker or an endio, and nothing here is called again for it.  So they
++ * are named for submission and counted separately, rather than folding
++ * queued ops into "completed" and reporting a completion count that is
++ * really a submission count.  Covering async completions would mean
++ * wrapping iocb->ki_complete; until that exists, `queued` is the number
++ * of ops whose outcome these counters do not know.
++ */
++static atomic_t bch2_swap_in_submit = ATOMIC_INIT(0);
++static atomic64_t bch2_swap_completed = ATOMIC64_INIT(0);	/* synchronously */
++static atomic64_t bch2_swap_queued = ATOMIC64_INIT(0);		/* outcome unseen */
++static atomic64_t bch2_swap_errors = ATOMIC64_INIT(0);		/* at submission */
++
++/*
++ * Warn after 2 s, BUG (debug builds) after 60 s.  The BUG threshold must
++ * clear the legitimate tail under total swap exhaustion: with swap 100%
++ * full and the OOM killer active, individual ops measured >5 s while the
++ * fs stayed live (millions of completions, zero errors).  A genuine
++ * reclaim deadlock parks ops forever, so 60 s still catches it quickly.
++ */
++#define SWAP_IO_WARN_NS		(2ULL * NSEC_PER_SEC)
++#define SWAP_IO_BUG_NS		(60ULL * NSEC_PER_SEC)
++
++int bch2_swap_activate(struct swap_info_struct *sis,
++		       struct file *file, sector_t *span)
++{
++	struct bch_inode_info *inode = file_bch_inode(file);
++	struct bch_fs *c = inode->v.i_sb->s_fs_info;
++
++	if (!S_ISREG(inode->v.i_mode))
++		return -EINVAL;
++
++	/*
++	 * bcachefs is copy-on-write: overwriting a block allocates a new
++	 * one, so a swap write can fail with ENOSPC even though the file
++	 * already exists at full size. That failure arrives during reclaim,
++	 * which is the worst possible time to discover it.
++	 *
++	 * Reserve the whole file up front. This is exactly what fallocate
++	 * does, so use it rather than inventing a second reservation
++	 * mechanism - but not via bch2_fallocate_dispatch(), because swapon()
++	 * already holds i_rwsem here and the dispatch takes inode_lock.
++	 *
++	 * The reservation is persistent, so there is nothing to undo in
++	 * ->swap_deactivate(): the file keeps its allocation like any other
++	 * fallocated file, and swapoff followed by swapon does not have to
++	 * find the space again.
++	 */
++	loff_t size = i_size_read(&inode->v);
++	long ret = __bch2_fallocate(inode, FALLOC_FL_KEEP_SIZE, 0, size);
++	if (ret) {
++		bch_err(c, "swapon: cannot reserve %llu bytes for inode %llu: %s",
++			(u64) size, (u64) inode->v.i_ino, bch2_err_str(ret));
++		/*
++		 * Log the private errcode, return a classified one: this is the
++		 * value swapon() reports to userspace, and bch2_fallocate_dispatch()
++		 * classifies for the same reason.
++		 */
++		return bch2_err_class(ret);
++	}
++
++	sis->flags |= SWP_FS_OPS;
++	*span = sis->pages;
++
++	bch_info(c, "swap activated on inode %llu (%llu pages)",
++		 (u64) inode->v.i_ino, (u64)sis->pages);
++
++	return add_swap_extent(sis, 0, sis->max, 0);
++}
++
++void bch2_swap_deactivate(struct file *file)
++{
++	struct bch_inode_info *inode = file_bch_inode(file);
++	struct bch_fs *c = inode->v.i_sb->s_fs_info;
++
++	bch_info(c, "swap deactivated on inode %llu", (u64) inode->v.i_ino);
++}
++
++/*
++ * Swap I/O callback — called for every swap read/write when SWP_FS_OPS
++ * is set.  Returns bytes transferred or -EIOCBQUEUED for async I/O.
++ */
++int bch2_swap_rw(struct kiocb *iocb, struct iov_iter *iter)
++{
++	struct bch_fs *c = file_inode(iocb->ki_filp)->i_sb->s_fs_info;
++	u64 start_ns = ktime_get_ns();
++	int rw = iov_iter_rw(iter);
++
++	atomic_inc(&bch2_swap_in_submit);
++
++	iocb->ki_flags |= IOCB_DIRECT;
++
++	/*
++	 * Prevent reclaim re-entry for both writes AND reads.
++	 *
++	 * Writes: swap writeback runs during reclaim, so allocations in
++	 * the write path must not trigger reclaim (circular dependency).
++	 *
++	 * Reads: swap-in happens during page fault.  If a read-path
++	 * allocation enters reclaim → reclaim tries to swap out other
++	 * pages → those writes compete for the same btree locks as the
++	 * read → deadlock.
++	 *
++	 * PF_MEMALLOC bypasses watermarks and skips direct reclaim.
++	 */
++	unsigned int noreclaim_flags = memalloc_noreclaim_save();
++
++	ssize_t ret;
++	if (rw == READ)
++		ret = bch2_read_iter(iocb, iter);
++	else
++		ret = bch2_write_iter(iocb, iter);
++
++	memalloc_noreclaim_restore(noreclaim_flags);
++
++	atomic_dec(&bch2_swap_in_submit);
++
++	u64 elapsed_ns = ktime_get_ns() - start_ns;
++
++	if (ret == -EIOCBQUEUED) {
++		atomic64_inc(&bch2_swap_queued);
++	} else if (ret < 0) {
++		atomic64_inc(&bch2_swap_errors);
++		bch_err_ratelimited(c, "swap_rw %s error %li at pos %lld "
++				    "(in_submit=%d completed=%lld queued=%lld errors=%lld)",
++				    rw == READ ? "read" : "write",
++				    ret, iocb->ki_pos,
++				    atomic_read(&bch2_swap_in_submit),
++				    atomic64_read(&bch2_swap_completed),
++				    atomic64_read(&bch2_swap_queued),
++				    atomic64_read(&bch2_swap_errors));
++	} else {
++		atomic64_inc(&bch2_swap_completed);
++	}
++
++	/*
++	 * Detect stalled swap I/O.  If a single operation takes >2 s,
++	 * something is badly wrong (likely PF_MEMALLOC reserves exhausted
++	 * or deadlock).  WARN at SWAP_IO_WARN_NS; in debug builds, BUG at
++	 * SWAP_IO_BUG_NS to get a full crash dump with symbolized stacks
++	 * instead of a silent hang.
++	 *
++	 * elapsed_ns is time spent in submission.  For a synchronous op that
++	 * is the whole operation; for one that returned -EIOCBQUEUED it is
++	 * only the part before the handoff, so a stall in the async tail is
++	 * not caught here.  That is the tripwire on the index-update worker's
++	 * job, and it is why that one exists separately.
++	 */
++	if (unlikely(elapsed_ns > SWAP_IO_WARN_NS)) {
++		bch_err(c, "swap_rw %s STALL: %llu ms in submit at pos %lld "
++			"(in_submit=%d completed=%lld queued=%lld errors=%lld)",
++			rw == READ ? "read" : "write",
++			elapsed_ns / NSEC_PER_MSEC, iocb->ki_pos,
++			atomic_read(&bch2_swap_in_submit),
++			atomic64_read(&bch2_swap_completed),
++			atomic64_read(&bch2_swap_queued),
++			atomic64_read(&bch2_swap_errors));
++		WARN_ON_ONCE(1);
++	}
++	if (unlikely(elapsed_ns > SWAP_IO_BUG_NS))
++		BUG_ON(IS_ENABLED(CONFIG_BCACHEFS_DEBUG));
++
++	return ret;
++}
++
++#endif /* NO_BCACHEFS_FS */
+diff --git a/fs/vfs/swap.h b/fs/vfs/swap.h
+new file mode 100644
+index 00000000..74e5cb09
+--- /dev/null
++++ b/fs/vfs/swap.h
+@@ -0,0 +1,14 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _BCACHEFS_VFS_SWAP_H
++#define _BCACHEFS_VFS_SWAP_H
++
++#ifndef NO_BCACHEFS_FS
++
++struct swap_info_struct;
++
++int bch2_swap_activate(struct swap_info_struct *, struct file *, sector_t *);
++void bch2_swap_deactivate(struct file *);
++int bch2_swap_rw(struct kiocb *, struct iov_iter *);
++
++#endif /* NO_BCACHEFS_FS */
++#endif /* _BCACHEFS_VFS_SWAP_H */

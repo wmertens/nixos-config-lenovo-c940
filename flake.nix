@@ -117,6 +117,11 @@
               hash = "sha256-pylfQjTnXiSzKPRJh9Jli1hhin/MIGIkZxLKxqlReVo=";
             };
           });
+          # swap file support, https://github.com/koverstreet/bcachefs-tools/pull/787
+          # rebased onto v1.39.2; also patches the out-of-tree kernel module
+          bcachefs-tools = prev.bcachefs-tools.overrideAttrs (old: {
+            patches = (old.patches or [ ]) ++ [ ./bcachefs-swap.patch ];
+          });
           wout-scripts = final.callPackage ./home/wout-scripts.nix { };
           google-chrome = prev.google-chrome.override {
             commandLineArgs = "--enable-features=TouchpadOverscrollHistoryNavigation";

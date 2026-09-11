@@ -41,9 +41,9 @@ in {
     options = [ "fmask=0022" "dmask=0022" ];
   };
 
-  swapDevices = [ {
-    device = "/dev/disk/by-uuid/3a1a2284-ba90-4cb4-a101-abe7c92f7e69";
-  } ];
+  swapDevices = [
+    { device = "/dev/disk/by-uuid/3a1a2284-ba90-4cb4-a101-abe7c92f7e69"; }
+  ];
 
   hardware.enableRedistributableFirmware = true;
   hardware.cpu.amd.updateMicrocode = true;
