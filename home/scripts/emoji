@@ -1,0 +1,13 @@
+#!/bin/sh
+# Emoji/unicode picker: rofi grid, then typed into the focused window by the typer@wout gnome extension
+# rofi's wayland backend needs layer-shell (wlr only), which GNOME lacks, so use its x11 backend as a normal window
+# Arrow keys move in the grid; Ctrl+b/f move the cursor in the query
+# ponytail: -dpi is a fixed guess for fractional scaling; tweak if the grid looks off
+s=$(rofimoji --action print --skin-tone neutral --hidden-descriptions \
+  --files emojis latin-1_supplement latin_extended-a latin_extended_additional greek_and_coptic \
+    mathematical_operators supplemental_mathematical_operators miscellaneous_mathematical_symbols \
+    mathematical_alphanumeric_symbols letterlike_symbols superscripts_and_subscripts arrows \
+    general_punctuation currency_symbols \
+  --selector rofi --selector-args "-x11 -normal-window -dpi 600 -kb-row-left Left -kb-row-right Right -kb-move-char-back Control+b -kb-move-char-forward Control+f -theme-str 'listview { columns: 10; lines: 10; }'") || exit
+sleep 0.2  # ponytail: let focus return to the target window after rofi closes
+exec gdbus call --session --dest org.gnome.Shell --object-path /org/wout/Typer --method org.wout.Typer.Type "$s" >/dev/null

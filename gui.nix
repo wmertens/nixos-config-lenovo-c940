@@ -53,14 +53,9 @@
   services.libinput.enable = true;
   # Enable synthetic input
   hardware.uinput.enable = true;
-  i18n.inputMethod.enable = true;
-  i18n.inputMethod.type = "ibus";
-  # i18n.inputMethod.enable = "ibus";
-  # i18n.inputMethod.type = "ibus";
-  # i18n.inputMethod.ibus.engines = with pkgs.ibus-engines; [
-  #   typing-booster
-  #   uniemoji
-  # ];
+  # GNOME enables ibus by default; keep it off the GTK/Qt IM module path so
+  # apps use Wayland text-input (needed for the typer@wout emoji picker)
+  i18n.inputMethod.ibus.waylandFrontend = true;
 
   services.displayManager.gdm.enable = true;
   services.desktopManager.gnome.enable = true;

@@ -58,9 +58,6 @@ rec {
   xdg.configFile."google-chrome/NativeMessagingHosts/eu.webeid.json".source =
     "${pkgs.web-eid-app}/share/web-eid/eu.webeid.json";
 
-  xdg.configFile."autostart/com.tomjwatson.Emote.desktop".source =
-    "${pkgs.emote}/share/applications/com.tomjwatson.Emote.desktop";
-
   programs.vscode = {
     enable = true;
     profiles.default.extensions = with pkgs.vscode-extensions; [ ms-vsliveshare.vsliveshare ];
@@ -89,6 +86,7 @@ rec {
   home.file.".inputrc".source = ./inputrc;
   home.file.".screenrc".source = ./screenrc;
   home.file.".vimrc".source = ./vimrc;
+  home.file.".local/share/gnome-shell/extensions/typer@wout".source = ./typer-extension;
   home.file.".ssh/config" = {
     target = ".ssh/config_source";
     onChange = "cp -f ~/.ssh/config_source ~/.ssh/config && chmod 400 ~/.ssh/config";
@@ -143,11 +141,11 @@ rec {
     # Run only form
     # =============
 
-    # Search emoji, then paste the selection with Ctrl+V.
-    <Super>period,${pkgs.emote}/bin/emote
+    # Search emoji/unicode, typed into the focused window via the typer@wout extension
+    <Super>period,${pkgs.wout-scripts}/bin/emoji
 
     # open a konsole window
-    # <Super><Ctrl><Alt><Shift>D,${pkgs.wout-scripts}/bin/new-konsole
+    # <Super><Ctrl><Alt><Shift>D,$\{pkgs.wout-scripts}/bin/new-konsole
     # open devdocs.io in a new chrome app window (should only open one but can't find how to do that)
     <Super><Ctrl><Alt><Shift>D,${pkgs.google-chrome}/bin/google-chrome-stable --profile-directory=Default --app-id=ahiigpfcghkbjfcibpojancebdfjmoop,chrome-ahiigpfcghkbjfcibpojancebdfjmoop-Default,DevDocs
     # --app=https://devdocs.io
@@ -156,13 +154,6 @@ rec {
     # Now delete these shortcuts and put here yours.
     # How to know wm_class? Alt+f2, lg, "windows" tab (at least on Ubuntu 17.10)
   '';
-
-  home.sessionVariables = {
-    #ibus
-    GTK_IM_MODULE = "ibus"; # Fix for Chrome
-    QT_IM_MODULE = "ibus"; # Not sure if this works or not, but whatever
-    XMODIFIERS = "@im=ibus";
-  };
 
   dconf.settings."org/gnome/desktop/peripherals/touchpad" = {
     middle-click-emulation = true;
@@ -195,7 +186,8 @@ rec {
     # uses way too much cpu
     #keybase-gui
     brightnessctl
-    emote
+    rofi
+    rofimoji
     lguf-brightness
     google-chrome
     firefox

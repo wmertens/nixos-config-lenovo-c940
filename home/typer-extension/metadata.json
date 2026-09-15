@@ -1,0 +1,7 @@
+{
+  "uuid": "typer@wout",
+  "name": "Typer",
+  "description": "DBus method org.wout.Typer.Type(text): type text into the focused window via Mutter's virtual keyboard",
+  "shell-version": ["50"],
+  "url": ""
+}
