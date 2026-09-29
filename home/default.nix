@@ -155,6 +155,10 @@ rec {
     # How to know wm_class? Alt+f2, lg, "windows" tab (at least on Ubuntu 17.10)
   '';
 
+  dconf.settings."org/gnome/shell/keybindings" = {
+    show-screenshot-ui = [ "Print" "<Super><Ctrl><Alt><Shift>p" ];
+  };
+
   dconf.settings."org/gnome/desktop/peripherals/touchpad" = {
     middle-click-emulation = true;
   };
