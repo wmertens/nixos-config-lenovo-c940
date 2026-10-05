@@ -64,26 +64,23 @@
   hardware.bluetooth.enable = true;
 
   # Lock the screen when the phone walks away (RSSI offset below threshold, or unreachable)
-  # ponytail: hcitool is deprecated; a looping l2ping holds the link up so no audio profile is needed
-  security.wrappers.l2ping = {
-    source = "${pkgs.bluez}/bin/l2ping";
-    capabilities = "cap_net_raw+ep";
-    owner = "root";
-    group = "root";
-  };
+  # ponytail: hcitool is deprecated; an open PAN (tethering) link keeps the phone from dropping the connection
+  # requires "Bluetooth tethering" on in the phone; bnep0 gets no IP, so nothing is routed through it
+  networking.networkmanager.unmanaged = [ "interface-name:bnep*" ];
   systemd.user.services.phone-lock = {
     wantedBy = [ "default.target" ];
-    path = [ pkgs.bluez pkgs.gawk pkgs.glib ];
+    path = [ pkgs.bluez pkgs.gawk pkgs.glib pkgs.systemd ];
     script = ''
       MAC=64:9D:38:E5:5E:44
+      DEV=/org/bluez/hci0/dev_''${MAC//:/_}
       T=-8 # tune: run `hcitool rssi $MAC` at the distance you want to lock
       n=0
-      # keeps the link up; exits when the phone is unreachable, so retry
-      while :; do /run/wrappers/bin/l2ping -d 5 $MAC >/dev/null || true; sleep 1; done &
-      while sleep 5; do
+      # (re)open PAN whenever it is down; fails harmlessly while the phone is away or already connected
+      while :; do busctl call org.bluez $DEV org.bluez.Network1 Connect s nap >/dev/null 2>&1 || true; sleep 5; done &
+      while sleep 2; do
         r=$(hcitool rssi $MAC 2>/dev/null | awk '{print $NF}')
         if [ -z "$r" ] || [ "$r" -lt "$T" ]; then n=$((n+1)); else n=0; fi
-        if [ $n -eq 2 ]; then
+        if [ $n -eq 5 ]; then # 5x2s = 10s, rides out the phone's 60s link reset (~5s gap)
           gdbus call --session --dest org.gnome.ScreenSaver --object-path /org/gnome/ScreenSaver \
             --method org.gnome.ScreenSaver.Lock || true
         fi
