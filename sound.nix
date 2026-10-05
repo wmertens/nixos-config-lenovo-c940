@@ -23,6 +23,9 @@
     # If you want to use JACK applications, uncomment this
     jack.enable = true;
     wireplumber.enable = true;
+    # Laptop is only ever an audio source/AG, never a sink/hands-free for the phone
+    wireplumber.extraConfig."51-bluez-roles"."monitor.bluez.properties"."bluez5.roles" =
+      [ "a2dp_source" "hfp_ag" "hsp_ag" ];
     # Better Bluetooth calls
     # media-session.config.bluez-monitor.rules = [
     #   {
