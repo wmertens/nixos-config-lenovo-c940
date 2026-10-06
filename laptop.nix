@@ -73,7 +73,7 @@
     script = ''
       MAC=64:9D:38:E5:5E:44
       DEV=/org/bluez/hci0/dev_''${MAC//:/_}
-      T=-8 # tune: run `hcitool rssi $MAC` at the distance you want to lock
+      T=-13 # tune: run `hcitool rssi $MAC` at the distance you want to lock
       n=0
       # (re)open PAN whenever it is down; fails harmlessly while the phone is away or already connected
       while :; do busctl call org.bluez $DEV org.bluez.Network1 Connect s nap >/dev/null 2>&1 || true; sleep 5; done &
