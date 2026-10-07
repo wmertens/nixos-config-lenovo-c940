@@ -24,6 +24,7 @@
       fi
     '';
   };
+  boot.kernelParams = [ "resume=${(builtins.head config.swapDevices).device}" ];
   systemd.services.prepare-hibernation-swap = {
     description = "Evacuate primary swap partition to bcachefs swapspace files before hibernation";
     before = [ "systemd-hibernate.service" ];
@@ -46,7 +47,7 @@
         echo 3 > /proc/sys/vm/drop_caches
 
         # 4. Find the first active partition-type swap device
-        PRIMARY_SWAP=$(awk '$2 == "partition" {print $1; exit}' /proc/swaps)
+        PRIMARY_SWAP=${(builtins.head config.swapDevices).device}
 
         if [ -n "$PRIMARY_SWAP" ]; then
           echo "Evacuating active data from primary swap device: $PRIMARY_SWAP"
