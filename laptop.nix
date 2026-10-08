@@ -115,6 +115,14 @@
   #   # CPU_MAX_PERF_ON_BAT = 60;
   # };
 
+  # Allow access to XReal S1
+  # ponytail: must be <73 (not extraRules/99-local) or uaccess ACLs aren't applied
+  services.udev.packages = [
+    (pkgs.writeTextDir "lib/udev/rules.d/70-xreal.rules" ''
+      KERNEL=="hidraw*", ATTRS{idVendor}=="3318", TAG+="uaccess"
+    '')
+  ];
+
   environment.systemPackages = with pkgs; [
     pciutils
     usbutils
