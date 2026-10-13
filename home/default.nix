@@ -150,6 +150,8 @@ rec {
     <Super><Ctrl><Alt><Shift>D,${pkgs.google-chrome}/bin/google-chrome-stable --profile-directory=Default --app-id=ahiigpfcghkbjfcibpojancebdfjmoop,chrome-ahiigpfcghkbjfcibpojancebdfjmoop-Default,DevDocs
     # --app=https://devdocs.io
     <Super><Ctrl><Alt><Shift>W,${pkgs.google-chrome}/bin/google-chrome-stable --profile-directory=Default --app-id=hnpfjngllnobngcgfapefoaidbinmjnm,chrome-hnpfjngllnobngcgfapefoaidbinmjnm-Default,WhatsApp
+    <Super><Ctrl><Alt><Shift>B,${pkgs.google-chrome}/bin/google-chrome-stable --profile-directory=Default --app-id=fmpnliohjhemenmnlpbfagaolkdacoja,chrome-fmpnliohjhemenmnlpbfagaolkdacoja-Default,Claude
+    <Super><Ctrl><Alt>A,${pkgs.google-chrome}/bin/google-chrome-stable --profile-directory=Default --app-id=cinhimbnkkaeohfgghhklpknlkffjgod,chrome-cinhimbnkkaeohfgghhklpknlkffjgod-Default,YouTube Music
 
     # Blank lines are allowed. Line starting with "#" means a comment.
     # Now delete these shortcuts and put here yours.
