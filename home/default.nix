@@ -296,6 +296,8 @@ rec {
       stop = "sudo /run/current-system/sw/bin/systemctl stop";
       restart = "sudo /run/current-system/sw/bin/systemctl restart";
       log = "/run/current-system/sw/bin/journalctl";
+      # touchpad firmware sometimes falls back to mouse mode; rebind restores multitouch
+      reset-trackpad = "for a in unbind bind; do echo i2c-SYNA2BA6:00 | sudo tee /sys/bus/i2c/drivers/i2c_hid_acpi/$a >/dev/null; done";
     };
     bashrcExtra =
       builtins.replaceStrings
