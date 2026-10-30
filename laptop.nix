@@ -66,8 +66,13 @@
 
   # Lock the screen when the phone walks away (RSSI offset below threshold, or unreachable)
   # ponytail: hcitool is deprecated; an open PAN (tethering) link keeps the phone from dropping the connection
-  # requires "Bluetooth tethering" on in the phone; bnep0 gets no IP, so nothing is routed through it
-  networking.networkmanager.unmanaged = [ "interface-name:bnep*" ];
+  # requires "Bluetooth tethering" on in the phone
+  # NM manages bnep0 but never auto-activates it: run `nmcli connection up phone-tether` to tether (metric 900 > wifi 600)
+  networking.networkmanager.ensureProfiles.profiles.phone-tether = {
+    connection = { id = "phone-tether"; type = "ethernet"; interface-name = "bnep0"; metered = 1; autoconnect = false; };
+    ipv4 = { method = "auto"; route-metric = 900; };
+    ipv6.method = "disabled";
+  };
   systemd.user.services.phone-lock = {
     wantedBy = [ "default.target" ];
     path = [ pkgs.bluez pkgs.gawk pkgs.glib pkgs.systemd ];
