@@ -150,12 +150,22 @@ rec {
     <Super><Ctrl><Alt><Shift>D,${pkgs.google-chrome}/bin/google-chrome-stable --profile-directory=Default --app-id=ahiigpfcghkbjfcibpojancebdfjmoop,chrome-ahiigpfcghkbjfcibpojancebdfjmoop-Default,DevDocs
     # --app=https://devdocs.io
     <Super><Ctrl><Alt><Shift>W,${pkgs.google-chrome}/bin/google-chrome-stable --profile-directory=Default --app-id=hnpfjngllnobngcgfapefoaidbinmjnm,chrome-hnpfjngllnobngcgfapefoaidbinmjnm-Default,WhatsApp
-    <Super><Ctrl><Alt><Shift>B,${pkgs.google-chrome}/bin/google-chrome-stable --profile-directory=Default --app-id=fmpnliohjhemenmnlpbfagaolkdacoja,chrome-fmpnliohjhemenmnlpbfagaolkdacoja-Default,Claude
+    <Super><Ctrl><Alt><Shift>B,${pkgs.google-chrome}/bin/google-chrome-stable --profile-directory=Default --app-id=fmpnliohjhemenmnlpbfagaolkdacoja,/^chrome-fmpnliohjhemenmnlpbfagaolkdacoja-/,
     <Super><Ctrl><Alt>A,${pkgs.google-chrome}/bin/google-chrome-stable --profile-directory=Default --app-id=cinhimbnkkaeohfgghhklpknlkffjgod,chrome-cinhimbnkkaeohfgghhklpknlkffjgod-Default,YouTube Music
 
     # Blank lines are allowed. Line starting with "#" means a comment.
     # Now delete these shortcuts and put here yours.
     # How to know wm_class? Alt+f2, lg, "windows" tab (at least on Ubuntu 17.10)
+  '';
+
+  # Hue-shift the Profile 6 Claude app icon so it's distinguishable from Default.
+  # Chrome regenerates these PNGs on app updates, dropping our comment tag, so we redo it then.
+  home.activation.recolorClaudeIcon = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    for f in $HOME/.local/share/icons/hicolor/*/apps/chrome-fmpnliohjhemenmnlpbfagaolkdacoja-Profile_6.png; do
+      [ -e "$f" ] || continue
+      [ "$(${pkgs.imagemagick}/bin/magick identify -format %c "$f")" = recolored ] && continue
+      run ${pkgs.imagemagick}/bin/magick "$f" -modulate 100,100,40 -set comment recolored "$f"
+    done
   '';
 
   dconf.settings."org/gnome/shell/keybindings" = {
