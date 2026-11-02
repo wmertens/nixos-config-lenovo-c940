@@ -21,7 +21,6 @@ in {
   ];
   boot.kernelModules = [ "amdgpu" "kvm-amd" ];
 
-  boot.initrd.systemd.enable = true;
   boot.initrd.systemd.emergencyAccess = true;
   systemd.enableEmergencyMode = true;
   boot.initrd.clevis.enable = true;
