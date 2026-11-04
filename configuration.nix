@@ -24,6 +24,7 @@
     ./sound.nix
     ./gui.nix
     ./ollama.nix
+    ./home-assistant.nix
   ];
 
   # todo nicer boot screen
