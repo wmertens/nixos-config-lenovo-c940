@@ -55,6 +55,17 @@ in {
   # brightness sensor
   hardware.sensor.iio.enable = true;
 
+  # touchpad firmware restarts itself into mouse mode now and then; put it back
+  systemd.services.trackpad-fix = {
+    description = "Restore touchpad multitouch after firmware falls back to mouse mode";
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      ExecStart = pkgs.runCommandCC "trackpad-fix" { }
+        "$CC -O2 -Wall -Wextra -o $out ${./trackpad-fix.c}";
+      Restart = "always";
+    };
+  };
+
   hardware.nvidia = {
     open = true;
     #package = config.boot.kernelPackages.nvidiaPackages.beta;
