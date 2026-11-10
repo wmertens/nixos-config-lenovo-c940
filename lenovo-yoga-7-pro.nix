@@ -57,8 +57,7 @@ in {
 
   hardware.nvidia = {
     open = true;
-    # temp to make it work again
-    package = config.boot.kernelPackages.nvidiaPackages.beta;
+    #package = config.boot.kernelPackages.nvidiaPackages.beta;
     #modesetting.enable = lib.mkDefault true;
 
     # This doesn't seem to do much and it causes a sleep attempt after wake
