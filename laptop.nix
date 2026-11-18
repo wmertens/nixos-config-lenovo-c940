@@ -67,22 +67,35 @@
   # Lock the screen when the phone walks away (RSSI offset below threshold, or unreachable)
   # ponytail: hcitool is deprecated; an open PAN (tethering) link keeps the phone from dropping the connection
   # requires "Bluetooth tethering" on in the phone
-  # NM manages bnep0 but never auto-activates it: run `nmcli connection up phone-tether` to tether (metric 900 > wifi 600)
+  # NM ignores the raw bnep interface (udev renames it too); it tethers via its own bluetooth device type.
+  # phone-link: IP-less link held by the phone-lock service. phone-tether: never auto-activated;
+  # `nmcli connection up phone-tether` (or the GNOME button) switches to it, metric 900 > wifi 600.
+  # Both must go through NM: a raw BlueZ Network1.Connect would make NM's own connect fail ("in progress").
+  networking.networkmanager.ensureProfiles.profiles.phone-link = {
+    connection = { id = "phone-link"; type = "bluetooth"; autoconnect = false; };
+    bluetooth = { bdaddr = "64:9D:38:E5:5E:44"; type = "panu"; };
+    ipv4.method = "disabled";
+    ipv6.method = "disabled";
+  };
   networking.networkmanager.ensureProfiles.profiles.phone-tether = {
-    connection = { id = "phone-tether"; type = "ethernet"; interface-name = "bnep0"; metered = 1; autoconnect = false; };
+    connection = { id = "phone-tether"; type = "bluetooth"; metered = 1; autoconnect = false; };
+    bluetooth = { bdaddr = "64:9D:38:E5:5E:44"; type = "panu"; };
     ipv4 = { method = "auto"; route-metric = 900; };
     ipv6.method = "disabled";
   };
   systemd.user.services.phone-lock = {
     wantedBy = [ "default.target" ];
-    path = [ pkgs.bluez pkgs.gawk pkgs.glib pkgs.systemd ];
+    path = [ pkgs.bluez pkgs.gawk pkgs.glib pkgs.networkmanager ];
     script = ''
       MAC=64:9D:38:E5:5E:44
-      DEV=/org/bluez/hci0/dev_''${MAC//:/_}
       T=-13 # tune: run `hcitool rssi $MAC` at the distance you want to lock
       n=0
-      # (re)open PAN whenever it is down; fails harmlessly while the phone is away or already connected
-      while :; do busctl call org.bluez $DEV org.bluez.Network1 Connect s nap >/dev/null 2>&1 || true; sleep 5; done &
+      # hold the link: when NM's phone device is idle (30 = disconnected), bring up the IP-less profile.
+      # Does nothing while tethering (phone-tether active) or while the phone is away (fails harmlessly).
+      while :; do
+        case $(nmcli -t -g GENERAL.STATE device show $MAC 2>/dev/null) in 30*) nmcli connection up phone-link >/dev/null 2>&1 || true;; esac
+        sleep 5
+      done &
       while sleep 2; do
         r=$(hcitool rssi $MAC 2>/dev/null | awk '{print $NF}')
         if [ -z "$r" ] || [ "$r" -lt "$T" ]; then n=$((n+1)); else n=0; fi
