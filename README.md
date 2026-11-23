@@ -50,6 +50,7 @@ home-manager switch --flake .#wmertens
 ## Notes
 
 - Uses the Determinate Nix module and `nixos-unstable`.
-- `keyd` is pinned to 2.5.0 via an overlay because 2.6.0 drops spaces.
+- `keyd` is patched (`keyd-overload-timer.patch`) because 2.6.0 resolves a pending
+  `overloadt2` as hold when any timer fires, which eats spaces.
 - Some files (`secrets/`, `home/secrets/`) are not meant to be public; check
   what is committed before sharing the repo.

@@ -1,0 +1,11 @@
+--- a/src/keyboard.c	2026-11-23 14:53:02.215646876 +0100
++++ b/src/keyboard.c	2026-11-23 14:53:02.217646772 +0100
+@@ -1142,7 +1142,7 @@
+ 		action = kbd->pending_overload.action2;
+ 	else if (code == kbd->pending_overload.code)
+ 		action = kbd->pending_overload.action1;
+-	else if (kbd->pending_overload.resolve_on_interrupt && !pressed)
++	else if (kbd->pending_overload.resolve_on_interrupt && code && !pressed)
+ 		action = kbd->pending_overload.action2;
+ 	else
+ 		action.op = 0;
