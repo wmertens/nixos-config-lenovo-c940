@@ -21,6 +21,11 @@ in {
   ];
   boot.kernelModules = [ "amdgpu" "kvm-amd" ];
 
+  boot.kernelParams = [
+    # backlight brightness curve
+    "amdgpu.dcdebugmask=0x40000"
+  ];
+  
   boot.initrd.systemd.emergencyAccess = true;
   systemd.enableEmergencyMode = true;
   boot.initrd.clevis.enable = true;
