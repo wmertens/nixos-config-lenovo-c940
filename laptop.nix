@@ -83,6 +83,24 @@
     ipv4 = { method = "auto"; route-metric = 900; };
     ipv6.method = "disabled";
   };
+  # Bluetooth PAN carries ~1-2 Mbit/s; without shaping, queues grow to seconds. cake keeps them short.
+  # Egress is shaped on the interface, ingress via an ifb device. Tune the two rates to the real throughput.
+  networking.networkmanager.dispatcherScripts = [{
+    type = "basic";
+    source = pkgs.writeShellScript "phone-tether-shaping" ''
+      [ "$CONNECTION_ID" = phone-tether ] && [ "$2" = up ] || exit 0
+      tc=${pkgs.iproute2}/bin/tc; ip=${pkgs.iproute2}/bin/ip
+      # for bluetooth devices DEVICE_IFACE is the phone's MAC; the netdev (renamed bnep0) is DEVICE_IP_IFACE
+      IF=$DEVICE_IP_IFACE
+      ${pkgs.kmod}/bin/modprobe ifb
+      $ip link add ifb-tether type ifb 2>/dev/null || true
+      $ip link set ifb-tether up
+      $tc qdisc replace dev "$IF" root cake bandwidth 1mbit
+      $tc qdisc replace dev "$IF" handle ffff: ingress
+      $tc filter replace dev "$IF" parent ffff: matchall action mirred egress redirect dev ifb-tether
+      $tc qdisc replace dev ifb-tether root cake bandwidth 1500kbit besteffort ingress
+    '';
+  }];
   systemd.user.services.phone-lock = {
     wantedBy = [ "default.target" ];
     path = [ pkgs.bluez pkgs.gawk pkgs.glib pkgs.networkmanager ];
