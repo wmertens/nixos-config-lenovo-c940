@@ -1,0 +1,33 @@
+#!/usr/bin/env node
+// Global hotkey -> focus the Slack tab in whichever Chrome profile has it (see slack-tab-extension).
+// No args: ping every connected Chrome profile. Run by Chrome as native host (argv[1] = origin): listen for pings.
+const fs = require('fs')
+const net = require('net')
+const path = require('path')
+
+const dir = path.join(process.env.XDG_RUNTIME_DIR, 'slack-tab')
+
+if ((process.argv[2] || '').startsWith('chrome-extension://')) {
+  fs.mkdirSync(dir, { recursive: true })
+  const sock = path.join(dir, `${process.pid}.sock`)
+  const done = () => {
+    fs.rmSync(sock, { force: true })
+    process.exit()
+  }
+  net
+    .createServer(c => {
+      c.end()
+      const msg = Buffer.from('{"go":1}')
+      const len = Buffer.alloc(4)
+      len.writeUInt32LE(msg.length)
+      process.stdout.write(Buffer.concat([len, msg]))
+    })
+    .listen(sock)
+  process.stdin.on('end', done) // Chrome closed the pipe
+  process.stdin.resume()
+  process.on('SIGTERM', done)
+  process.on('SIGINT', done)
+} else {
+  for (const f of fs.existsSync(dir) ? fs.readdirSync(dir) : [])
+    net.connect(path.join(dir, f)).on('connect', function () { this.end() }).on('error', () => {}) // stale socket
+}

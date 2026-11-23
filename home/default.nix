@@ -58,6 +58,16 @@ rec {
   xdg.configFile."google-chrome/NativeMessagingHosts/eu.webeid.json".source =
     "${pkgs.web-eid-app}/share/web-eid/eu.webeid.json";
 
+  # Slack-tab hotkey: the unpacked extension (load ~/.config/slack-tab-extension in each Chrome profile) pings this host
+  xdg.configFile."slack-tab-extension".source = ./slack-tab-extension;
+  xdg.configFile."google-chrome/NativeMessagingHosts/wout.slack_tab.json".text = builtins.toJSON {
+    name = "wout.slack_tab";
+    description = "Slack tab hotkey";
+    path = "${pkgs.wout-scripts}/bin/slack-tab";
+    type = "stdio";
+    allowed_origins = [ "chrome-extension://bdjeadilbdpgkphifmgcomoooikbodof/" ];
+  };
+
   programs.vscode = {
     enable = true;
     profiles.default.extensions = with pkgs.vscode-extensions; [ ms-vsliveshare.vsliveshare ];
@@ -143,6 +153,9 @@ rec {
 
     # Search emoji/unicode, typed into the focused window via the typer@wout extension
     <Super>period,${pkgs.wout-scripts}/bin/emoji
+
+    # focus the Slack tab in whichever Chrome profile has it
+    <Super><Ctrl><Alt><Shift>g,${pkgs.wout-scripts}/bin/slack-tab
 
     # open a konsole window
     # <Super><Ctrl><Alt><Shift>D,$\{pkgs.wout-scripts}/bin/new-konsole

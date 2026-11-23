@@ -1,0 +1,8 @@
+{
+  "manifest_version": 3,
+  "name": "Slack tab",
+  "version": "1",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAkZxhjanBMBKJT7a7t9QqbYTSoNVi7fdbNsLSwXn4EXPL4yXC+8Soth2m3GKwa5x27VVxgn6HMlBbq0gnw7e/Kn9JXDRgMJUmSyFpYKru/kN0QBUYa1Vilv18Wms5vOL2c+fDBl1nVXDOqFmx9kERaEr5Ionvse6l2urWHgCR+mrcFAYm6zJCls/zddSPIP51zlNuvoNOU4sM5iGgx4frIVB1GLjzb8cNo62wOZMAu8NH0Q9e4gP0M7spSbD1UaSPvOK6kxwpyEZb0c096Sx7IE/538ckbVs3llyWN9wssQqfDvC7WdjUps/bCVFFNoggYv8kV6EXSO/4OMSHR8MjoQIDAQAB",
+  "permissions": ["tabs", "nativeMessaging"],
+  "background": { "service_worker": "background.js" }
+}
