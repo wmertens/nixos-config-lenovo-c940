@@ -1,0 +1,172 @@
+diff --git a/src/config.c b/src/config.c
+index 3557fb0..237459b 100644
+--- a/src/config.c
++++ b/src/config.c
+@@ -827,6 +827,10 @@ static void parse_global_section(struct config *config, struct ini_section *sect
+ 			config->disable_modifier_guard = atoi(ent->val);
+ 		else if (!strcmp(ent->key, "oneshot_timeout"))
+ 			config->oneshot_timeout = atoi(ent->val);
++		else if (!strcmp(ent->key, "overload_roll_timeout"))
++			config->overload_roll_timeout = atoi(ent->val);
++		else if (!strcmp(ent->key, "debounce_timeout"))
++			config->debounce_timeout = atoi(ent->val);
+ 		else if (!strcmp(ent->key, "chord_hold_timeout"))
+ 			config->chord_hold_timeout = atoi(ent->val);
+ 		else if (!strcmp(ent->key, "chord_timeout"))
+@@ -1029,6 +1033,8 @@ static void config_init(struct config *config)
+ 	config->chord_interkey_timeout = 50;
+ 	config->chord_hold_timeout = 0;
+ 	config->oneshot_timeout = 0;
++	config->overload_roll_timeout = 0;
++	config->debounce_timeout = 0;
+ 
+ 	config->macro_timeout = 600;
+ 	config->macro_repeat_timeout = 50;
+diff --git a/src/config.h b/src/config.h
+index f09f800..a7b7265 100644
+--- a/src/config.h
++++ b/src/config.h
+@@ -142,6 +142,8 @@ struct config {
+ 	long macro_sequence_timeout;
+ 	long macro_repeat_timeout;
+ 	long oneshot_timeout;
++	long overload_roll_timeout;
++	long debounce_timeout;
+ 
+ 	long overload_tap_timeout;
+ 
+diff --git a/src/daemon.c b/src/daemon.c
+index cf901eb..9f295d6 100644
+--- a/src/daemon.c
++++ b/src/daemon.c
+@@ -514,7 +514,27 @@ static int event_handler(struct event *ev)
+ 			active_kbd = ev->dev->data;
+ 			switch (ev->devev->type) {
+ 			size_t i;
+-			case DEV_KEY:
++			case DEV_KEY: {
++				static long last_release[256];
++				static uint8_t debounced[256];
++				const long debounce = kbd->config.debounce_timeout;
++				const uint8_t c = ev->devev->code;
++
++				if (debounce) {
++					if (ev->devev->pressed) {
++						if (last_release[c] && ev->timestamp - last_release[c] < debounce) {
++							dbg("debounce: dropped %s down %ldms after up", KEY_NAME(c), ev->timestamp - last_release[c]);
++							debounced[c] = 1;
++							break;
++						}
++					} else if (debounced[c]) {
++						debounced[c] = 0;
++						break;
++					} else {
++						last_release[c] = ev->timestamp;
++					}
++				}
++
+ 				dbg("input %s %s", KEY_NAME(ev->devev->code), ev->devev->pressed ? "down" : "up");
+ 
+ 				kev.code = ev->devev->code;
+@@ -523,6 +543,7 @@ static int event_handler(struct event *ev)
+ 
+ 				timeout = kbd_process_events(kbd, &kev, 1);
+ 				break;
++			}
+ 			case DEV_MOUSE_MOVE:
+ 				if (kbd->scroll.active) {
+ 					if (kbd->scroll.sensitivity == 0)
+diff --git a/src/keyboard.c b/src/keyboard.c
+index 3670d26..7ae2eee 100644
+--- a/src/keyboard.c
++++ b/src/keyboard.c
+@@ -601,6 +601,7 @@ static long process_descriptor(struct keyboard *kbd, uint8_t code,
+ 			kbd->pending_overload.action2.op = OP_LAYER;
+ 			kbd->pending_overload.action2.args[0].idx = layer;
+ 			kbd->pending_overload.expiration = time + d->args[2].timeout;
++			kbd->pending_overload.activation_time = time;
+ 
+ 			schedule_timeout(kbd, kbd->pending_overload.expiration);
+ 		}
+@@ -1107,6 +1108,7 @@ int handle_pending_timeout(struct keyboard *kbd, uint8_t event_code, int pressed
+ int handle_pending_overload(struct keyboard *kbd, uint8_t code, int pressed, long time)
+ {
+ 	struct descriptor action;
++	int roll = 0;
+ 
+ 	if (!kbd->pending_overload.code)
+ 		return 0;
+@@ -1134,6 +1136,9 @@ int handle_pending_overload(struct keyboard *kbd, uint8_t code, int pressed, lon
+ 		ev->pressed = pressed;
+ 		ev->timestamp = time;
+ 
++		dbg("overload %d: queued key %d %s at +%ldms", kbd->pending_overload.code, code,
++		    pressed ? "down" : "up", time - kbd->pending_overload.activation_time);
++
+ 		kbd->pending_overload.queue_sz++;
+ 	}
+ 
+@@ -1142,12 +1147,30 @@ int handle_pending_overload(struct keyboard *kbd, uint8_t code, int pressed, lon
+ 		action = kbd->pending_overload.action2;
+ 	else if (code == kbd->pending_overload.code)
+ 		action = kbd->pending_overload.action1;
+-	else if (kbd->pending_overload.resolve_on_interrupt && code && !pressed)
++	else if (kbd->pending_overload.resolve_on_interrupt && code && !pressed) {
+ 		action = kbd->pending_overload.action2;
+-	else
++
++		/*
++		 * A key struck within overload_roll_timeout of the overload key is a
++		 * roll (e.g. the thumb landed a hair early), not a deliberate
++		 * layer use: tap the overload key, but after the rolled keys so
++		 * the order is the one that was intended.
++		 */
++		if (kbd->config.overload_roll_timeout &&
++		    kbd->pending_overload.queue_sz &&
++		    kbd->pending_overload.queue[0].pressed &&
++		    kbd->pending_overload.queue[0].timestamp - kbd->pending_overload.activation_time <= kbd->config.overload_roll_timeout) {
++			action = kbd->pending_overload.action1;
++			roll = 1;
++		}
++	} else
+ 		action.op = 0;
+ 
+ 	if (action.op) {
++		dbg("overload %d: resolved at +%ldms as %s%s", kbd->pending_overload.code,
++		    time - kbd->pending_overload.activation_time,
++		    action.op == OP_LAYER ? "hold" : "tap", roll ? " (roll, rolled keys first)" : "");
++
+ 		/* Create a copy of the queue on the stack to
+ 		   allow for recursive pending key processing. */
+ 		struct key_event queue[ARRAY_SIZE(kbd->pending_overload.queue)];
+@@ -1166,10 +1189,15 @@ int handle_pending_overload(struct keyboard *kbd, uint8_t code, int pressed, lon
+ 			.dl = dl,
+ 			.layer = 0,
+ 		});
+-		process_descriptor(kbd, code, &action, dl, 1, time);
++		if (roll) {
++			kbd_process_events(kbd, queue, queue_sz);
++			process_descriptor(kbd, code, &action, dl, 1, time);
++		} else {
++			process_descriptor(kbd, code, &action, dl, 1, time);
+ 
+-		/* Flush queued events */
+-		kbd_process_events(kbd, queue, queue_sz);
++			/* Flush queued events */
++			kbd_process_events(kbd, queue, queue_sz);
++		}
+ 	}
+ 
+ 	return 1;
+diff --git a/src/keyboard.h b/src/keyboard.h
+index ed1b200..fc5ca9a 100644
+--- a/src/keyboard.h
++++ b/src/keyboard.h
+@@ -110,6 +110,7 @@ struct keyboard {
+ 		uint8_t code;
+ 		uint8_t dl;
+ 		long expiration;
++		long activation_time;
+ 
+ 		int resolve_on_interrupt;
+ 

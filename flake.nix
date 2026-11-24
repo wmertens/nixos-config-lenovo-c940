@@ -110,7 +110,10 @@
           # keyd 2.6.0 eats my spaces: any timer firing (chord timeout) while space is a
           # pending overloadt2 resolved it as "hold". Fix: ignore timer events (code 0).
           keyd = prev.keyd.overrideAttrs (old: {
-            patches = (old.patches or [ ]) ++ [ ./keyd-overload-timer.patch ];
+            patches = (old.patches or [ ]) ++ [
+              ./keyd-overload-timer.patch
+              ./keyd-overload-roll.patch
+            ];
           });
           # swap file support, https://github.com/koverstreet/bcachefs-tools/pull/787
           # rebased onto v1.39.2; also patches the out-of-tree kernel module
